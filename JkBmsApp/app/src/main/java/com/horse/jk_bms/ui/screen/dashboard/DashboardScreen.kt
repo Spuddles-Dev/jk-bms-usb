@@ -29,12 +29,16 @@ fun DashboardScreen(
 ) {
     val runtimeData by viewModel.runtimeData.collectAsState()
     val isConnected by viewModel.isConnected.collectAsState()
+    var showExportDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("JK-BMS Dashboard") },
                 actions = {
+                    IconButton(onClick = { showExportDialog = true }) {
+                        Icon(Icons.Default.FileDownload, "Export")
+                    }
                     IconButton(onClick = onDeviceInfoClick) {
                         Icon(Icons.Default.Info, "Device Info")
                     }
@@ -73,6 +77,10 @@ fun DashboardScreen(
             }
         },
     ) { padding ->
+        if (showExportDialog) {
+            ExportDialog(onDismiss = { showExportDialog = false })
+        }
+
         if (!isConnected) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(padding),
