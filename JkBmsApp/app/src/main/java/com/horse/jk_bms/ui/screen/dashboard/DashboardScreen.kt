@@ -98,6 +98,12 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Default.Warning, "Faults") },
                     label = { Text("Faults") },
                 )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onLogsClick,
+                    icon = { Icon(Icons.Default.Description, "Logs") },
+                    label = { Text("Logs") },
+                )
             }
         },
     ) { padding ->
@@ -145,6 +151,27 @@ fun DashboardScreen(
             StatusRow("SOH", "${data.soh}%")
             StatusRow("Battery Type", data.batteryTypeLabel)
             StatusRow("Cycle Count", "${data.socCycleCount}")
+
+            if (lastDataTimestamp > 0) {
+                val elapsed = (System.currentTimeMillis() - lastDataTimestamp) / 1000
+                val timeStr = when {
+                    elapsed < 5 -> "just now"
+                    elapsed < 60 -> "${elapsed}s ago"
+                    elapsed < 3600 -> "${elapsed / 60}m ago"
+                    else -> "${elapsed / 3600}h ago"
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Text(
+                        "Updated $timeStr",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isStaleLive) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             HorizontalDivider()
 

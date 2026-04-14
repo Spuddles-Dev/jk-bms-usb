@@ -53,29 +53,68 @@ fun DeviceInfoScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            SectionHeader("Device")
             InfoRow("Device ID", info.manuDeviceID)
+            InfoRow("Serial Number", info.deviceSN)
             InfoRow("Hardware Version", info.hardwareVersion)
             InfoRow("Software Version", info.softwareVersion)
+            InfoRow("Hardware Option", info.hardwareOption)
+            InfoRow("Protocol Version", "${info.protocolVer}")
             InfoRow("Max Cells", "${info.maxCells}")
-            InfoRow("Serial Number", info.deviceSN)
-            InfoRow("BLE Name", info.bluetoothName)
             InfoRow("Manufacture Date", info.manufactureDate)
+            InfoRow("Agency ID", "${info.agencyId}")
+
+            SectionHeader("Runtime")
             InfoRow("Total Runtime", formatSeconds(info.oddRunTime))
             InfoRow("Power-on Times", "${info.pwrOnTimes}")
             InfoRow("Data Store Period", "${info.dataStoredPeriod} s")
-            InfoRow("Agency ID", "${info.agencyId}")
-            InfoRow("Protocol Version", "${info.protocolVer}")
+            InfoRow("Emergency Time", "${info.emergencyTime} min")
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            SectionHeader("Bluetooth")
+            InfoRow("BLE Name", info.bluetoothName)
+            InfoRow("BLE Password", info.bluetoothPwd)
+            InfoRow("Setting Password", info.settingPassword)
 
+            SectionHeader("User Data")
+            InfoRow("User Data", info.userData)
+            InfoRow("User Data 2", info.userData2)
+
+            SectionHeader("Protocols")
             InfoRow("UART1 Protocol", "${info.uart1ProtoNo}")
             InfoRow("CAN Protocol", "${info.canProtoNo}")
             InfoRow("UART2 Protocol", "${info.uart2ProtoNo}")
             InfoRow("UART3 Protocol", "${info.uart3ProtoNo}")
+            InfoRow("UART MPTL Version", "${info.uartMPTLVer}")
+            InfoRow("CAN MPTL Version", "${info.canMPTLVer}")
+
+            SectionHeader("Triggers")
+            InfoRow("LCD/Buzzer Trigger", "${info.lcdBuzzerTrigger}")
+            InfoRow("LCD/Buzzer Trigger Val", "${info.lcdBuzzerTriggerVal}")
+            InfoRow("LCD/Buzzer Release Val", "${info.lcdBuzzerReleaseVal}")
+            InfoRow("Dry Contact 1 Trigger", "${info.dry1Trigger}")
+            InfoRow("Dry 1 Trigger Val", "${info.dry1TriggerVal}")
+            InfoRow("Dry 1 Release Val", "${info.dry1ReleaseVal}")
+            InfoRow("Dry Contact 2 Trigger", "${info.dry2Trigger}")
+            InfoRow("Dry 2 Trigger Val", "${info.dry2TriggerVal}")
+            InfoRow("Dry 2 Release Val", "${info.dry2ReleaseVal}")
+
+            SectionHeader("Charging")
             InfoRow("Re-Bulk SOC", "${info.reBulkSOC}%")
-            InfoRow("Emergency Time", "${info.emergencyTime} min")
+            InfoRow("RCV Time", "${info.rcvTime} s")
+            InfoRow("RFV Time", "${info.rfvTime} s")
         }
     }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+    HorizontalDivider()
 }
 
 @Composable
