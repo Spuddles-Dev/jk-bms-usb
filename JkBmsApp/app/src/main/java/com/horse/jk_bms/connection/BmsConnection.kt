@@ -1,5 +1,6 @@
 package com.horse.jk_bms.connection
 
+import com.horse.jk_bms.data.repository.DataLogRepository
 import com.horse.jk_bms.model.BmsConfig
 import com.horse.jk_bms.model.BmsDeviceInfo
 import com.horse.jk_bms.model.BmsFaultInfo
@@ -32,6 +33,7 @@ sealed class BmsEvent {
 @Singleton
 class BmsConnection @Inject constructor(
     private val usbSerialManager: UsbSerialManager,
+    private val dataLogRepository: DataLogRepository,
 ) {
     private val _events = MutableSharedFlow<BmsEvent>(extraBufferCapacity = 64)
     val events: SharedFlow<BmsEvent> = _events.asSharedFlow()
@@ -59,6 +61,7 @@ class BmsConnection @Inject constructor(
 
     private var pollerJob: Job? = null
     private var counter = 0
+    private var cleanupCounter = 0
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun listDevices(): List<UsbDeviceInfo> = usbSerialManager.listSerialDevices()
@@ -100,6 +103,11 @@ class BmsConnection @Inject constructor(
                 val frameCode = pollSequence[index % pollSequence.size]
                 queryFrame(frameCode)
                 index++
+                cleanupCounter++
+                if (cleanupCounter >= 600) {
+                    scope.launch { dataLogRepository.cleanup() }
+                    cleanupCounter = 0
+                }
                 delay(100)
             }
             _isPolling.value = false
@@ -125,13 +133,13 @@ class BmsConnection @Inject constructor(
         val raw = FrameDecoder.findFrameInBuffer(result.getOrThrow())
         if (raw == null) {
             _events.tryEmit(BmsEvent.Error("Failed to decode response for ${frameCode.name}"))
-            return Result.failure(Exception("Decode failed"))
+            return Result.failure<Nothing>(Exception("Decode failed"))
         }
 
         val (rawFrame, _) = raw
         if (rawFrame.frameCode != frameCode) {
             _events.tryEmit(BmsEvent.Error("Unexpected frame code: ${rawFrame.frameCode}, expected $frameCode"))
-            return Result.failure(Exception("Unexpected frame code"))
+            return Result.failure<Nothing>(Exception("Unexpected frame code"))
         }
 
         return when (frameCode) {
@@ -139,30 +147,35 @@ class BmsConnection @Inject constructor(
                 val data = RuntimeDataParser.parse(rawFrame.data)
                 _runtimeData.value = data
                 _events.tryEmit(BmsEvent.RuntimeDataUpdated(data))
+                scope.launch { dataLogRepository.logRuntimeData(data) }
                 Result.success(data)
             }
             FrameCode.CONFIG_READ -> {
                 val cfg = ConfigParser.parse(rawFrame.data)
                 _config.value = cfg
                 _events.tryEmit(BmsEvent.ConfigUpdated(cfg))
+                scope.launch { dataLogRepository.logConfig(cfg) }
                 Result.success(cfg)
             }
             FrameCode.DEVICE_INFO -> {
                 val info = DeviceInfoParser.parse(rawFrame.data)
                 _deviceInfo.value = info
                 _events.tryEmit(BmsEvent.DeviceInfoUpdated(info))
+                scope.launch { dataLogRepository.logDeviceInfo(info) }
                 Result.success(info)
             }
             FrameCode.FAULT_INFO -> {
                 val faults = FaultInfoParser.parse(rawFrame.data)
                 _faultInfo.value = faults
                 _events.tryEmit(BmsEvent.FaultInfoUpdated(faults))
+                scope.launch { dataLogRepository.logFaultInfo(faults) }
                 Result.success(faults)
             }
             FrameCode.SYSTEM_LOG -> {
                 val log = SystemLogParser.parse(rawFrame.data)
                 _systemLog.value = log
                 _events.tryEmit(BmsEvent.SystemLogUpdated(log))
+                scope.launch { dataLogRepository.logSystemLog(log) }
                 Result.success(log)
             }
             FrameCode.CONFIG_WRITE -> {
