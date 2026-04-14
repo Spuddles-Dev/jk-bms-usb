@@ -21,3 +21,5 @@ JkBmsApp/.cxx/
 *.apk
 *.aab
 *.log
+
+.worktrees/
