@@ -41,19 +41,25 @@ app/src/main/java/com/horse/jk_bms/
 │   ├── BmsConstants.kt, FrameCode.kt, Checksum.kt
 │   ├── FrameEncoder.kt, FrameDecoder.kt
 │   ├── FieldEncoder.kt, FieldDecoder.kt
+│   ├── ConfigFieldValidator.kt      # Per-field min/max rules for config writes
 │   └── RuntimeDataParser, ConfigParser, DeviceInfoParser, FaultInfoParser, SystemLogParser
 ├── model/             # Data classes: BmsRuntimeData, BmsConfig, BmsDeviceInfo, BmsFaultAndLog
-├── usb/               # UsbSerialManager (mik3y usb-serial-for-android)
-├── connection/        # BmsConnection — poll cycle, StateFlows, query+write
-├── repository/        # BmsRepository — facade over BmsConnection
-├── viewmodel/         # @HiltViewModel, expose StateFlow
-└── ui/                # Compose screens (connection, dashboard, cells, settings, device, faults, logs)
+├── usb/               # UsbSerialManager, UsbEventReceiver (USB attach/detach)
+├── connection/        # BmsConnection — poll cycle, StateFlows, query+write, circuit breaker, auto-log
+├── data/
+│   ├── local/         # Room database: JkBmsDatabase, entities, DAOs, TypeConverters
+│   ├── repository/    # DataLogRepository — auto-logging + 7-day cleanup
+│   └── export/        # CsvFormatter, JsonFormatter, DataExporter (+ FileProvider share)
+├── repository/        # BmsRepository — facade over BmsConnection for ViewModels
+├── di/                # Hilt modules: UsbModule, DatabaseModule
+├── viewmodel/         # @HiltViewModel, expose StateFlow (7 VMs)
+└── ui/                # Compose screens (7 screens)
     ├── theme/         # Color.kt, Theme.kt (Material3 dynamic colors)
     ├── navigation/    # Screen sealed class (7 routes), AppNavHost
     └── screen/        # Per-feature Compose screens
 ```
 
-Tests: `app/src/test/java/com/horse/jk_bms/protocol/`
+Tests: `app/src/test/java/com/horse/jk_bms/protocol/` (9 test files, ~150+ tests)
 
 ## Architecture
 
@@ -64,6 +70,8 @@ Clean layered architecture — each layer only depends on layers below:
 - **Navigation**: Single `MainActivity` → `AppNavHost` → 7 `Screen` routes via navigation-compose.
 - **State**: `StateFlow<T>` for VM state, `SharedFlow<T>` for one-shot events.
 - **Async**: `Dispatchers.IO` for heavy operations, `Dispatchers.Main` for UI.
+- **Database**: Room with 5 entities, auto-logs every poll response, 7-day cleanup every ~600 polls.
+- **Export**: CSV + JSON formatters, FileProvider share intent.
 
 ## Code Style
 
@@ -98,6 +106,7 @@ Clean layered architecture — each layer only depends on layers below:
 - Return early on errors (`if (!valid) return null`)
 - Graceful degradation — never crash on protocol errors
 - Emit errors via `SharedFlow` in connection/VM layers
+- Circuit breaker in polling: 5 consecutive failures → 2s pause → retry
 
 ### Comments
 - Do not add comments unless explicitly asked
@@ -127,10 +136,11 @@ Full spec: `../protocol-complete.md`
 - Use JUnit 4 (`org.junit.Test`), MockK, kotlinx-coroutines-test, Turbine
 - Test location mirrors source: `app/src/test/java/com/horse/jk_bms/...`
 - Test class naming: `<ClassUnderTest>Test` (`ChecksumTest`, `FrameDecoderTest`)
+- 9 test files: ChecksumTest, FrameDecoderTest, FrameEncoderTest, FieldDecoderTest, FieldEncoderTest, ConfigParserTest, RuntimeDataParserTest, DeviceInfoParserTest, FaultInfoParserTest
 
 ## Dependencies (key)
 
 - Kotlin 2.1.0, Compose BOM 2024.12.01, Material3
-- Hilt 2.51 (KSP), Room 2.6.1 (KSP)
+- Hilt 2.54 (KSP), Room 2.6.1 (KSP)
 - mik3y/usb-serial-for-android v3.8.1 (JitPack)
 - Navigation Compose 2.8.5

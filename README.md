@@ -14,16 +14,31 @@ A full replacement for the official JK-BMS Android app — no Bluetooth, no clou
 - Capacity tracking: remaining, full, and cycle capacity in Ah
 - Real-time status: charging, discharging, balancing, heating indicators
 - Active alarm count at a glance
+- Stale data indicator when connection is lagging ("STALE" badge + elapsed timestamp)
 
 **Configuration**
 - Read and write all 49 BMS parameters: voltage/current/temperature protections, delays, cell count, capacity, balance settings, switch enables
+- Inline editable fields with per-field validation (min/max ranges)
 - Confirmation dialog before any write operation
 - Automatic read-back verification after config changes
+- Unsaved changes detection with reset button
 
 **Diagnostics**
-- Device info: hardware/software version, serial number, manufacture date, BLE credentials, protocol versions
+- Device info: all 45 fields — hardware/software version, serial number, manufacture date, BLE credentials, protocol versions, trigger settings
 - Fault history with per-record details (voltage, current, temperatures, cell data)
-- System log viewer with hex dump
+- 20 fault codes mapped to human-readable names
+- System log viewer with structured alarm log parsing
+
+**Data Logging & Export**
+- Automatic Room database logging of all poll responses (runtime, config, device info, faults, system logs)
+- 7-day auto-cleanup of runtime data
+- Export to CSV or JSON with time range selection
+- Share via Android share intent
+
+**Error Recovery**
+- Auto-reconnect when USB device is reattached (VID/PID matching)
+- Circuit breaker: 5 consecutive failures → 2-second pause → retry
+- USB attach/detach event monitoring via BroadcastReceiver
 
 **Hardware Support**
 - Works with common USB-serial adapters: FTDI, CP210x, CH340/CH341, PL2303, CDC/ACM
@@ -89,22 +104,31 @@ Requires JDK 17+ and Android SDK with compileSdk 36.
 │  StateFlow for reactive state,          │
 │  SharedFlow for one-shot events         │
 ├─────────────────────────────────────────┤
-│  Repository Layer (BmsRepository)       │
-│  Facade over connection for ViewModels  │
+│  Repository Layer                       │
+│  BmsRepository (connection facade)      │
+│  DataLogRepository (Room auto-logging)  │
 ├─────────────────────────────────────────┤
 │  Connection Layer (BmsConnection)       │
-│  Poll cycle state machine, query/write  │
+│  Poll cycle, query/write, circuit       │
+│  breaker, auto-log to DB                │
 ├──────────────┬──────────────────────────┤
 │  Protocol    │  USB Serial              │
 │  Frame       │  (mik3y                  │
 │  encode/     │   usb-serial-for-        │
 │  decode/     │   android v3.8.1)        │
-│  parse       │                          │
-└──────────────┴──────────────────────────┘
+│  parse +     │  UsbEventReceiver        │
+│  validate    │  (attach/detach)         │
+├──────────────┴──────────────────────────┤
+│  Data Layer                             │
+│  Room DB (5 entities, 5 DAOs)           │
+│  CSV/JSON export + FileProvider share   │
+└─────────────────────────────────────────┘
 ```
 
-- **Dependency Injection**: Hilt with KSP
-- **Navigation**: Single-activity, Navigation Compose with 7 routes
+- **Dependency Injection**: Hilt 2.54 with KSP
+- **Navigation**: Single-activity, Navigation Compose with 7 routes, 5-tab bottom nav
+- **Database**: Room 2.6.1 — auto-logs all poll responses, 7-day auto-cleanup
+- **Export**: CSV and JSON formatters, Android share intent via FileProvider
 - **Async**: Kotlin coroutines — `Dispatchers.IO` for serial I/O, `Dispatchers.Main` for UI
 - **Protocol**: Pure Kotlin, no Android dependencies — testable with synthetic byte arrays
 
@@ -137,7 +161,7 @@ cd JkBmsApp
 ./gradlew connectedAndroidTest
 ```
 
-Protocol layer tests use synthetic byte arrays — no mocking needed. Current coverage includes `Checksum`, `FrameEncoder`, `FrameDecoder`, and `FieldDecoder`. Parser tests (`RuntimeDataParser`, `ConfigParser`, `DeviceInfoParser`, `FaultInfoParser`) are planned.
+Protocol layer tests use synthetic byte arrays — no mocking needed. 9 test files with ~150+ tests covering `Checksum`, `FrameEncoder`, `FrameDecoder`, `FieldDecoder`, `FieldEncoder`, `ConfigParser`, `RuntimeDataParser`, `DeviceInfoParser`, and `FaultInfoParser`.
 
 ## Tech Stack
 
@@ -145,29 +169,32 @@ Protocol layer tests use synthetic byte arrays — no mocking needed. Current co
 |---|---|
 | Language | Kotlin 2.1 |
 | UI | Jetpack Compose + Material3 |
-| DI | Hilt 2.51 (KSP) |
+| DI | Hilt 2.54 (KSP) |
 | Navigation | Navigation Compose 2.8.5 |
 | USB Serial | [usb-serial-for-android](https://github.com/mik3y/usb-serial-for-android) v3.8.1 |
-| Database | Room 2.6.1 (planned, deps present) |
+| Database | Room 2.6.1 (KSP) |
+| Export | CSV + JSON with FileProvider |
 | Async | Kotlin Coroutines + Flow |
 | Min SDK | 21 (Android 5.0) |
 | Target SDK | 36 |
 
 ## Project Status
 
-**Working build, pending hardware testing.**
+**Working build, all features implemented, pending hardware testing.**
 
 - [x] Protocol engine (encode/decode/parse all 6 frame types)
 - [x] USB serial layer with multi-chip adapter support
 - [x] Connection and polling state machine
 - [x] All 7 UI screens with live data binding
-- [x] Configuration read/write with confirmation
-- [x] Unit tests for protocol primitives
-- [ ] Room database for data logging
-- [ ] Editable settings screen (currently read-only)
+- [x] Configuration read/write with inline editing and validation
+- [x] Unit tests for all parsers (~150+ tests, 9 test files)
+- [x] Room database for data logging (5 entities, 7-day auto-cleanup)
+- [x] CSV/JSON data export with Android share intent
+- [x] Error recovery (auto-reconnect, circuit breaker, stale data indicator)
+- [x] UI polish (5-tab nav, full device info, fault names, structured logs)
 - [ ] Hardware validation against real BMS
-- [ ] Error recovery and USB detach handling
-- [ ] CSV/JSON data export
+- [ ] Instrumented tests (requires device/emulator)
+- [ ] Proguard rules for release builds
 
 ## Contributing
 

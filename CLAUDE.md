@@ -47,12 +47,18 @@ Clean layered architecture — each layer only depends on layers below it:
 ```
 USB hardware
     └── usb/UsbSerialManager          — mik3y usb-serial-for-android, enumerate/connect/read/write
+    └── usb/UsbEventReceiver          — BroadcastReceiver for USB attach/detach
     └── protocol/                     — pure Kotlin, no Android deps
          ├── FrameEncoder/Decoder     — 300-byte frame build/validate (header + code + counter + 293B data + sum8)
          ├── FieldDecoder/Encoder     — typed reads/writes (u8/u16/u32/i8/i16/i32/f32/arrays/bitmaps)
+         ├── ConfigFieldValidator     — per-field min/max validation rules for config writes
          └── *Parser                  — RuntimeDataParser, ConfigParser, DeviceInfoParser, FaultInfoParser
-    └── model/                        — pure data classes (BmsRuntimeData 74 fields, BmsConfig 46, BmsDeviceInfo 45)
-    └── connection/BmsConnection      — connect/disconnect, poll cycle, StateFlows, query+write
+    └── model/                        — pure data classes (BmsRuntimeData 69 fields, BmsConfig 49, BmsDeviceInfo 45)
+    └── data/
+         ├── local/                   — Room database, entities, DAOs, TypeConverters
+         ├── repository/DataLogRepository — auto-logging to Room on each poll response
+         └── export/                  — CsvFormatter, JsonFormatter, DataExporter
+    └── connection/BmsConnection      — connect/disconnect, poll cycle, StateFlows, query+write, circuit breaker, auto-log
     └── repository/BmsRepository      — facade over BmsConnection for ViewModels
     └── viewmodel/                    — MVVM, @HiltViewModel, expose StateFlow
     └── ui/                           — Compose screens (connection, dashboard, cells, settings, device, faults, logs)
@@ -75,16 +81,28 @@ Full spec: `protocol-complete.md` (repo root).
 
 ## Current State
 
-**Build is working** — migrated to KSP (was blocked on kapt + Kotlin 2.1 incompatibility).
+**Build is working** — migrated to KSP, all features implemented.
 
-**Done:** Protocol engine, USB layer, connection/polling state machine, repository, all ViewModels, all UI screens, navigation, theme, AndroidManifest.
+**Done:**
+- Protocol engine (encode/decode/parse all 6 frame types)
+- USB serial layer with multi-chip adapter support
+- Connection and polling state machine
+- All 7 UI screens with live data binding
+- Configuration read/write with inline editable fields and validation
+- Unit tests for all parsers (~150+ tests, 9 test files)
+- Room database with auto-logging (5 entities, 5 DAOs, TypeConverters, 7-day auto-cleanup)
+- Data export (CSV + JSON) with Android share intent
+- Error recovery: USB event receiver, auto-reconnect on reattach, circuit breaker (5 failures → 2s pause)
+- Stale data indicator ("STALE" badge, "Updated Xs ago" timestamp)
+- 5-tab bottom nav (Dashboard, Cells, Settings, Faults, Logs)
+- Full device info display (all 45 fields)
+- Fault code → human-readable name mapping (20 codes)
+- Structured alarm log parsing in Logs screen
 
 **Not done (priority order):**
-1. Unit tests for remaining parsers (`FieldDecoder`, `FieldEncoder`, `ConfigParser`, `RuntimeDataParser`, `DeviceInfoParser`, `FaultInfoParser`) — plan at `docs/superpowers/plans/2026-04-14-protocol-unit-tests.md`; `Checksum`, `FrameDecoder`, `FrameEncoder` tests already exist
-2. Room database for data logging (deps already in `build.gradle.kts`)
-3. Edit-capable settings screen (currently read-only)
-4. Hardware testing (UART adapter not yet tested against real BMS)
-5. Error recovery / reconnection logic / USB detach handling
+1. Hardware testing (UART adapter not yet tested against real BMS)
+2. Instrumented tests (requires device/emulator)
+3. Proguard rules for release builds (minification enabled but no custom rules)
 
 ## Code Conventions
 
