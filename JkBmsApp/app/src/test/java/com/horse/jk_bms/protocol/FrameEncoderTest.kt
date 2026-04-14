@@ -1,5 +1,6 @@
 package com.horse.jk_bms.protocol
 
+import com.horse.jk_bms.model.BmsConfig
 import org.junit.Assert.*
 import org.junit.Test
 

@@ -98,8 +98,10 @@ class UsbSerialManager @Inject constructor(
                     return@withContext Result.failure(IOException("Timeout waiting for response (${totalRead} bytes read)"))
                 }
 
-                val read = p.read(buffer, totalRead, buffer.size - totalRead, 100)
+                val chunk = ByteArray(FRAME_SIZE - totalRead)
+                val read = p.read(chunk, 100)
                 if (read > 0) {
+                    System.arraycopy(chunk, 0, buffer, totalRead, read)
                     totalRead += read
                 }
             }
