@@ -1,185 +1,136 @@
 # AGENTS.md — JK-BMS Android App
 
-## Project Summary
+Android app (Kotlin + Jetpack Compose) communicating with a JK-B2A20S20P BMS over USB-OTG serial (115200 baud, 8N1). All source under `JkBmsApp/`. Run all commands from `JkBmsApp/`.
 
-Custom Android app (Kotlin + Jetpack Compose) that communicates with a **JK-B2A20S20P BMS** over **USB-OTG serial** (UART, 115200 baud, 8N1). No Bluetooth. Full replacement for the official JK-BMS app — real-time monitoring, config read/write, fault viewing, data logging.
-
-## Build & Run
+## Build & Test Commands
 
 ```bash
-# Prerequisites: Android SDK, JDK 17+, Android Studio
-# Set JAVA_HOME to Android Studio's JBR or any JDK 17+
+# Build debug APK
+.\gradlew assembleDebug          # Windows
+./gradlew assembleDebug          # Unix/macOS
 
-# First run — gradle wrapper will download Gradle 8.11.1 automatically
-./gradlew assembleDebug
+# Install on connected device
+.\gradlew installDebug
 
-# APK output
-app/build/outputs/apk/debug/app-debug.apk
+# Run all unit tests
+.\gradlew test
 
-# Install on device
-adb install app/build/outputs/apk/debug/app-debug.apk
+# Run a single test class
+.\gradlew test --tests "com.horse.jk_bms.protocol.ChecksumTest"
+
+# Run a single test method
+.\gradlew test --tests "com.horse.jk_bms.protocol.ChecksumTest.testCalculateValidFrame"
+
+# Instrumented tests (requires device/emulator)
+.\gradlew connectedAndroidTest
+
+# Clean
+.\gradlew clean
 ```
 
-### Gradle Properties Required (`gradle.properties`)
-```
-android.useAndroidX=true
-kotlin.code.style=official
-android.nonTransitiveRClass=true
-android.suppressUnsupportedCompileSdk=36
-org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m
-```
+Requires `local.properties` with `sdk.dir=<Android-SDK-path>` (not committed).
+APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
-### `local.properties` (machine-specific, NOT committed)
-```
-sdk.dir=<path-to-Android-SDK>
-```
-
-## Known Build Issue — Hilt + Kotlin 2.1 + kapt
-
-**Current blocker:** kapt + Hilt 2.50 + Kotlin 2.1.0 fails with:
-```
-Provided Metadata instance has version 2.1.0, while maximum supported version is 2.0.0.
-```
-
-**Fix options (pick one):**
-1. **Migrate from kapt to KSP** (recommended). Update `build.gradle.kts`:
-   - Replace `kapt("com.google.dagger:hilt-compiler:2.50")` with `ksp("com.google.dagger:hilt-compiler:2.50")`
-   - Add KSP plugin: `id("com.google.devtools.ksp")` version matching Kotlin
-   - Room also needs KSP: `ksp("androidx.room:room-compiler:2.6.1")` instead of kapt
-2. **Downgrade Kotlin to 1.9.x** — set `kotlin = "1.9.22"` in root `build.gradle.kts` and use matching compose compiler plugin
-3. **Upgrade Hilt to 2.54+** which has better Kotlin 2.x support
-
-Also: `kotlinOptions { jvmTarget = "17" }` in `app/build.gradle.kts` triggers a deprecation warning. Can migrate to `compilerOptions` block.
+There is no ktlint or detekt configured. There is no lint command. Verify code by running `.\gradlew test`.
 
 ## Project Structure
 
 ```
-JkBmsApp/
-├── app/src/main/java/com/horse/jk_bms/
-│   ├── JkBmsApp.kt              # Hilt Application class
-│   ├── MainActivity.kt           # Single activity, Compose + NavHost
-│   │
-│   ├── protocol/                 # Wire protocol engine (COMPLETE)
-│   │   ├── BmsConstants.kt       # Frame size, offsets, timing
-│   │   ├── FrameCode.kt          # 6 frame codes enum
-│   │   ├── Checksum.kt           # sum8 calculation/validation
-│   │   ├── FrameEncoder.kt       # Build query + config write frames
-│   │   ├── FrameDecoder.kt       # Validate header/checksum, extract RawFrame
-│   │   ├── FieldDecoder.kt       # Read u8/u16/u32/i8/i16/i32/f32/arrays/bitmaps/strings
-│   │   ├── FieldEncoder.kt       # Write typed values to byte arrays
-│   │   ├── RuntimeDataParser.kt  # Parse frame 0x02 → BmsRuntimeData (74 fields)
-│   │   ├── ConfigParser.kt       # Parse frame 0x01 → BmsConfig (46 fields)
-│   │   ├── DeviceInfoParser.kt   # Parse frame 0x03 → BmsDeviceInfo (45 fields)
-│   │   ├── FaultInfoParser.kt    # Parse frame 0x06 → BmsFaultInfo + FaultRecord
-│   │   └── SystemLogParser.kt    # Parse frame 0x05 → BmsSystemLog
-│   │
-│   ├── model/                    # Data classes
-│   │   ├── BmsRuntimeData.kt     # 74-field runtime model
-│   │   ├── BmsConfig.kt          # 46-field config model
-│   │   ├── BmsDeviceInfo.kt      # 45-field device info model
-│   │   └── BmsFaultAndLog.kt     # FaultRecord, BmsFaultInfo, BmsSystemLog
-│   │
-│   ├── usb/                      # USB serial layer
-│   │   └── UsbSerialManager.kt   # Enumerate/connect/send+receive via mik3y usb-serial-for-android
-│   │
-│   ├── connection/               # Connection + polling state machine
-│   │   └── BmsConnection.kt      # Connect/disconnect, poll cycle, query/write config, StateFlows
-│   │
-│   ├── repository/
-│   │   └── BmsRepository.kt      # Facade over BmsConnection for ViewModels
-│   │
-│   ├── viewmodel/
-│   │   ├── ConnectionViewModel.kt
-│   │   ├── DashboardViewModel.kt
-│   │   ├── SettingsViewModel.kt
-│   │   └── OtherViewModels.kt    # Cells, DeviceInfo, Faults, Logs VMs
-│   │
-│   └── ui/
-│       ├── theme/
-│       │   ├── Color.kt
-│       │   └── Theme.kt          # JkBmsTheme (Material3 dynamic colors)
-│       ├── navigation/
-│       │   ├── Screen.kt         # Sealed class: 7 routes
-│       │   └── AppNavHost.kt     # NavHost wiring
-│       └── screen/
-│           ├── connection/       # USB device picker + connect button
-│           ├── dashboard/        # Main monitoring (voltage, current, SOC, temps, alarms)
-│           ├── cells/            # Per-cell voltage bars + wire resistance
-│           ├── settings/         # Config read-only display + write with confirmation dialog
-│           ├── device/           # Device info (serial, versions, protocols)
-│           ├── faults/           # Fault history records
-│           └── logs/             # System log hex dump
+app/src/main/java/com/horse/jk_bms/
+├── protocol/          # Wire protocol engine (pure Kotlin, no Android deps)
+│   ├── BmsConstants.kt, FrameCode.kt, Checksum.kt
+│   ├── FrameEncoder.kt, FrameDecoder.kt
+│   ├── FieldEncoder.kt, FieldDecoder.kt
+│   └── RuntimeDataParser, ConfigParser, DeviceInfoParser, FaultInfoParser, SystemLogParser
+├── model/             # Data classes: BmsRuntimeData, BmsConfig, BmsDeviceInfo, BmsFaultAndLog
+├── usb/               # UsbSerialManager (mik3y usb-serial-for-android)
+├── connection/        # BmsConnection — poll cycle, StateFlows, query+write
+├── repository/        # BmsRepository — facade over BmsConnection
+├── viewmodel/         # @HiltViewModel, expose StateFlow
+└── ui/                # Compose screens (connection, dashboard, cells, settings, device, faults, logs)
+    ├── theme/         # Color.kt, Theme.kt (Material3 dynamic colors)
+    ├── navigation/    # Screen sealed class (7 routes), AppNavHost
+    └── screen/        # Per-feature Compose screens
 ```
+
+Tests: `app/src/test/java/com/horse/jk_bms/protocol/`
+
+## Architecture
+
+Clean layered architecture — each layer only depends on layers below:
+`protocol/` + `usb/` → `connection/` → `repository/` → `viewmodel/` → `ui/`
+
+- **DI**: Hilt with KSP. `@HiltAndroidApp` on `JkBmsApp.kt`, `@AndroidEntryPoint` on `MainActivity`, `@HiltViewModel` on all VMs.
+- **Navigation**: Single `MainActivity` → `AppNavHost` → 7 `Screen` routes via navigation-compose.
+- **State**: `StateFlow<T>` for VM state, `SharedFlow<T>` for one-shot events.
+- **Async**: `Dispatchers.IO` for heavy operations, `Dispatchers.Main` for UI.
+
+## Code Style
+
+### Naming
+- **Classes/Interfaces**: PascalCase (`BmsRuntimeData`, `FrameDecoder`)
+- **Functions/Variables**: camelCase (`decode()`, `frameCode`)
+- **Constants**: `const val` in `object`, UPPER_SNAKE_CASE (`FRAME_SIZE`, `HEADER_MAGIC`)
+- **Composables**: PascalCase (`DashboardScreen()`, `StatusRow()`)
+- **Test methods**: `test<Feature><Scenario>` (`testValidFrame`, `testInvalidChecksum`)
+
+### Formatting
+- 4-space indent, no tabs
+- 120-char soft line limit
+- K&R braces (opening brace on same line)
+- Single blank line between top-level declarations
+
+### Imports
+- **No wildcard imports** — always import specific types
+- Remove unused imports
+
+### Types & Patterns
+- `Result<T>` for failable operations
+- `StateFlow<T>` for reactive state in ViewModels/Connection layer
+- `SharedFlow<T>` for events
+- `data class` for all models, `sealed class` for limited hierarchies
+- `object` for singletons and utilities (`Checksum`, `FieldDecoder`, `BmsConstants`)
+- Prefer explicit types over inference when it aids readability
+
+### Error Handling
+- `Result<T>` for success/failure returns
+- `require()` for precondition checks (`require(data.size >= 293)`)
+- Return early on errors (`if (!valid) return null`)
+- Graceful degradation — never crash on protocol errors
+- Emit errors via `SharedFlow` in connection/VM layers
+
+### Comments
+- Do not add comments unless explicitly asked
+- Exception: scale factor inline comments (`* 0.001f // mV`) and protocol offset references
 
 ## Protocol Reference
 
-Full byte-level spec: `../protocol-complete.md` (parent directory)
+Full spec: `../protocol-complete.md`
 
-Key facts:
 - Every frame is exactly **300 bytes**: `55 AA EB 90` header (4B) + frame code (1B) + counter (1B) + data (293B) + sum8 checksum (1B)
-- Host sends all-zeros query frame → BMS responds with data frame of same frame code
-- Config write: frame code 0x04 with values in 293-byte data section, BMS echoes back
-- All multi-byte values are **little-endian**
-- Numeric fields have scale factors (0.001 for mV/mA, 0.1 for deci-degrees, etc.)
-- Frame codes: 0x01=config read, 0x02=runtime, 0x03=device info, 0x04=config write, 0x05=sys log, 0x06=faults
-
-## USB Serial Library
-
-Uses **mik3y/usb-serial-for-android v3.8.1** via JitPack.
-- Package: `com.hoho.android.usbserial.driver.*`
-- Supports: FTDI, CP210x, CH34x, PL2303, CDC/ACM
-- Enumerate: `UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)`
-- Port API: `open(connection)`, `setParameters(baud, dataBits, stopBits, parity)`, `read(buf, timeout)`, `write(buf, timeout)`
-
-## Dependency Injection
-
-Uses **Hilt** with `@AndroidEntryPoint` on `MainActivity` and `@HiltViewModel` on all ViewModels.
-`JkBmsApp.kt` is the `@HiltAndroidApp` Application class.
-
-## What's Done
-
-- ✅ Protocol engine fully implemented (encode/decode/parse all 6 frame types)
-- ✅ USB serial manager
-- ✅ Connection + polling state machine
-- ✅ Repository
-- ✅ All ViewModels
-- ✅ All UI screens (Connection, Dashboard, Cells, Settings, Device Info, Faults, Logs)
-- ✅ Navigation graph
-- ✅ Theme (Material3 with dynamic colors)
-- ✅ AndroidManifest with USB host + device filter
-
-## What's NOT Done (prioritized)
-
-1. **Fix kapt/Hilt build issue** (KSP migration or Kotlin downgrade) — blocking compilation
-2. **Write unit tests** for protocol engine (FrameEncoder, FrameDecoder, all parsers with synthetic byte arrays)
-3. **Implement Room database** for data logging (entities, DAO, database class — deps already in build.gradle.kts)
-4. **Edit-capable settings screen** — currently read-only; add editable fields with validation
-5. **Hardware testing** — UART adapter is in the mail, no real BMS testing yet
-6. **Error recovery** — reconnection logic, stale data handling, USB detach events
-7. **Data export** — CSV/JSON export of logged data
-
-## Key Decisions
-
-- `minSdk = 21` (broad compatibility)
-- No Bluetooth — USB serial only
-- Confirmation dialogs before any BMS write operation
-- Read-back verification after config write
+- Host sends all-zeros 300-byte query → BMS responds with data frame of same frame code
+- Config write: frame code `0x04` with values in 293-byte data, BMS echoes back
+- All multi-byte values are **little-endian** with scale factors (0.001 for mV/mA, 0.1 for deci-degrees)
+- Frame codes: `0x01`=config read, `0x02`=runtime, `0x03`=device info, `0x04`=config write, `0x05`=sys log, `0x06`=faults
 - Polling cycle: Runtime → Config → DeviceInfo → Faults, 100ms gap between queries
-- Counter increments per frame sent, wraps at 255
+- Counter increments per sent frame, wraps at 255
 
-## Open Questions (need hardware)
+### Protocol/Field Decoding Conventions
+- Always validate byte array length before parsing
+- Use `FieldDecoder` helpers: `readU8()`, `readU16()`, `readU32()`, `readI32()`, `readF32()`
+- Apply scale factors immediately when reading (`* 0.001f // mV`)
+- Parse all fields even if currently unused — return complete data class instances, never partial
 
-1. Does all-zeros query frame trigger a response? (inferred from DLL, never tested)
-2. Config write ACK format — does BMS echo back frame 0x04?
-3. How addrCode=1 / frameAddrOffset=0x1000 affects wire protocol
-4. Error response behavior on bad checksum or invalid frame code
-5. Whether 300-byte all-zeros query is correct, or if shorter frames work
+## Testing Conventions
 
-## Analysis Documents (parent directory)
+- Protocol tests use synthetic byte arrays — no mocking needed for pure parsing logic
+- Use JUnit 4 (`org.junit.Test`), MockK, kotlinx-coroutines-test, Turbine
+- Test location mirrors source: `app/src/test/java/com/horse/jk_bms/...`
+- Test class naming: `<ClassUnderTest>Test` (`ChecksumTest`, `FrameDecoderTest`)
 
-- `protocol-complete.md` — complete protocol spec (key reference)
-- `apk-build-plan.md` — original 10-phase build plan
-- `apk-investig.md` — official Android APK analysis
-- `win-app-analysis.md` — Windows app analysis
-- `protocol-decode.md` — original encryption/decryption discovery
-- `en_US.json` / `zh_CN.json` — decrypted protocol field definitions from DLL
+## Dependencies (key)
+
+- Kotlin 2.1.0, Compose BOM 2024.12.01, Material3
+- Hilt 2.51 (KSP), Room 2.6.1 (KSP)
+- mik3y/usb-serial-for-android v3.8.1 (JitPack)
+- Navigation Compose 2.8.5
