@@ -59,9 +59,13 @@ class BmsConnection @Inject constructor(
     private val _isPolling = MutableStateFlow(false)
     val isPolling: StateFlow<Boolean> = _isPolling.asStateFlow()
 
+    private val _lastDataTimestamp = MutableStateFlow(0L)
+    val lastDataTimestamp: StateFlow<Long> = _lastDataTimestamp.asStateFlow()
+
     private var pollerJob: Job? = null
     private var counter = 0
     private var cleanupCounter = 0
+    private var consecutiveFailures = 0
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun listDevices(): List<UsbDeviceInfo> = usbSerialManager.listSerialDevices()
@@ -100,8 +104,17 @@ class BmsConnection @Inject constructor(
             )
             var index = 0
             while (isActive && usbSerialManager.isConnected) {
+                if (consecutiveFailures >= 5) {
+                    delay(2000)
+                    consecutiveFailures = 0
+                }
                 val frameCode = pollSequence[index % pollSequence.size]
-                queryFrame(frameCode)
+                val result = queryFrame(frameCode)
+                if (result.isFailure) {
+                    consecutiveFailures++
+                } else {
+                    consecutiveFailures = 0
+                }
                 index++
                 cleanupCounter++
                 if (cleanupCounter >= 600) {
@@ -146,6 +159,7 @@ class BmsConnection @Inject constructor(
             FrameCode.RUNTIME_DATA -> {
                 val data = RuntimeDataParser.parse(rawFrame.data)
                 _runtimeData.value = data
+                _lastDataTimestamp.value = System.currentTimeMillis()
                 _events.tryEmit(BmsEvent.RuntimeDataUpdated(data))
                 scope.launch { dataLogRepository.logRuntimeData(data) }
                 Result.success(data)

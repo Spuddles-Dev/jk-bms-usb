@@ -20,4 +20,5 @@ class DashboardViewModel @Inject constructor(
     val runtimeData: StateFlow<BmsRuntimeData?> = repository.runtimeData
     val isConnected: StateFlow<Boolean> = repository.isConnected
     val deviceInfo = repository.deviceInfo
+    val lastDataTimestamp: StateFlow<Long> = repository.lastDataTimestamp
 }

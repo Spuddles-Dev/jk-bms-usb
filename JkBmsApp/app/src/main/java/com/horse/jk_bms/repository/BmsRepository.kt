@@ -23,6 +23,7 @@ class BmsRepository @Inject constructor(
     val systemLog: StateFlow<BmsSystemLog?> = bmsConnection.systemLog
     val isConnected: StateFlow<Boolean> = bmsConnection.isConnected
     val isPolling: StateFlow<Boolean> = bmsConnection.isPolling
+    val lastDataTimestamp: StateFlow<Long> = bmsConnection.lastDataTimestamp
 
     fun listDevices(): List<UsbDeviceInfo> = bmsConnection.listDevices()
 

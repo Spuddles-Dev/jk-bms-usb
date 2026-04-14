@@ -29,12 +29,36 @@ fun DashboardScreen(
 ) {
     val runtimeData by viewModel.runtimeData.collectAsState()
     val isConnected by viewModel.isConnected.collectAsState()
+    val lastDataTimestamp by viewModel.lastDataTimestamp.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
+
+    val isStale = lastDataTimestamp > 0 && (System.currentTimeMillis() - lastDataTimestamp) > 2000
+
+    var staleRefresh by remember { mutableStateOf(0L) }
+    LaunchedEffect(isConnected) {
+        while (isConnected) {
+            staleRefresh = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+    val isStaleLive = lastDataTimestamp > 0 && (System.currentTimeMillis() - lastDataTimestamp) > 2000
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("JK-BMS Dashboard") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("JK-BMS Dashboard")
+                        if (isStaleLive) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "STALE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = { showExportDialog = true }) {
                         Icon(Icons.Default.FileDownload, "Export")
