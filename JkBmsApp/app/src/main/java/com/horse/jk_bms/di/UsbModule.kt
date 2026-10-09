@@ -2,6 +2,8 @@ package com.horse.jk_bms.di
 
 import android.content.Context
 import android.hardware.usb.UsbManager
+import com.horse.jk_bms.usb.BmsTransport
+import com.horse.jk_bms.usb.UsbSerialManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,6 +14,8 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object UsbModule {
+    @Provides
+    fun provideTransport(manager: UsbSerialManager): BmsTransport = manager
 
     @Provides
     @Singleton

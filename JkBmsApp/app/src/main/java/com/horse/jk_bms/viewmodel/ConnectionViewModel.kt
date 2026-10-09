@@ -1,15 +1,13 @@
 package com.horse.jk_bms.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.horse.jk_bms.repository.BmsRepository
 import com.horse.jk_bms.usb.UsbDeviceInfo
-import com.horse.jk_bms.usb.UsbEvent
 import com.horse.jk_bms.usb.UsbEventReceiver
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,92 +17,42 @@ data class ConnectionState(
     val isScanning: Boolean = false,
     val isConnecting: Boolean = false,
     val error: String? = null,
-    val lastConnectedDevice: UsbDeviceInfo? = null,
 )
 
 @HiltViewModel
 class ConnectionViewModel @Inject constructor(
-    application: Application,
     private val repository: BmsRepository,
-    private val usbEventReceiver: UsbEventReceiver,
-) : AndroidViewModel(application) {
-
-    private val _state = MutableStateFlow(ConnectionState())
-    val state: StateFlow<ConnectionState> = _state.asStateFlow()
+    usbEvents: UsbEventReceiver,
+) : ViewModel() {
+    private val mutableState = MutableStateFlow(ConnectionState())
+    val state = mutableState.asStateFlow()
 
     init {
-        usbEventReceiver.register(application)
         refreshDevices()
-        viewModelScope.launch {
-            usbEventReceiver.events.collect { event ->
-                when (event) {
-                    UsbEvent.DeviceAttached -> {
-                        refreshDevices()
-                        val lastDevice = _state.value.lastConnectedDevice
-                        if (lastDevice != null && repository.isConnected.value) {
-                            // already connected, ignore
-                        } else if (lastDevice != null) {
-                            tryAutoReconnect(lastDevice)
-                        } else {
-                            refreshDevices()
-                        }
-                    }
-                    UsbEvent.DeviceDetached -> {
-                        refreshDevices()
-                    }
-                }
-            }
-        }
+        viewModelScope.launch { usbEvents.events.collect { refreshDevices() } }
     }
 
     fun refreshDevices() {
-        _state.value = _state.value.copy(isScanning = true, error = null)
         try {
-            val devices = repository.listDevices()
-            _state.value = _state.value.copy(devices = devices, isScanning = false)
-        } catch (e: Exception) {
-            _state.value = _state.value.copy(isScanning = false, error = e.message)
+            mutableState.value = mutableState.value.copy(devices = repository.listDevices(), error = null)
+        } catch (error: Exception) {
+            mutableState.value = mutableState.value.copy(error = error.message)
         }
     }
 
-    fun connect(deviceInfo: UsbDeviceInfo, onConnected: () -> Unit) {
-        _state.value = _state.value.copy(isConnecting = true, error = null)
+    fun connect(info: UsbDeviceInfo, onConnected: () -> Unit) {
+        if (mutableState.value.isConnecting) return
+        mutableState.value = mutableState.value.copy(isConnecting = true, error = null)
         viewModelScope.launch {
-            val result = repository.connect(deviceInfo)
-            _state.value = _state.value.copy(isConnecting = false)
-            if (result.isSuccess) {
-                _state.value = _state.value.copy(lastConnectedDevice = deviceInfo)
-                onConnected()
-            } else {
-                _state.value = _state.value.copy(
-                    error = result.exceptionOrNull()?.message ?: "Connection failed"
-                )
+            try {
+                val result = repository.connect(info)
+                mutableState.value = mutableState.value.copy(error = result.exceptionOrNull()?.message)
+                if (result.isSuccess) onConnected()
+            } catch (error: CancellationException) {
+                throw error
+            } finally {
+                mutableState.value = mutableState.value.copy(isConnecting = false)
             }
         }
-    }
-
-    private fun tryAutoReconnect(targetDevice: UsbDeviceInfo) {
-        viewModelScope.launch {
-            val devices = repository.listDevices()
-            val match = devices.find {
-                it.device.vendorId == targetDevice.device.vendorId &&
-                    it.device.productId == targetDevice.device.productId
-            }
-            if (match != null) {
-                _state.value = _state.value.copy(isConnecting = true, error = null)
-                val result = repository.connect(match)
-                _state.value = _state.value.copy(isConnecting = false)
-                if (result.isFailure) {
-                    _state.value = _state.value.copy(
-                        error = "Auto-reconnect failed: ${result.exceptionOrNull()?.message}"
-                    )
-                }
-            }
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        usbEventReceiver.unregister(getApplication())
     }
 }

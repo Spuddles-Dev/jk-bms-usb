@@ -1,0 +1,3 @@
+JkBmsApp/gradlew text eol=lf
+JkBmsApp/gradlew.bat text eol=crlf
+*.kt text eol=lf

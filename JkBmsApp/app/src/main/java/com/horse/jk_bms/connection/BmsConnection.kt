@@ -1,227 +1,306 @@
 package com.horse.jk_bms.connection
 
+import android.content.Context
+import android.os.SystemClock
+import com.horse.jk_bms.BuildConfig
 import com.horse.jk_bms.data.repository.DataLogRepository
+import com.horse.jk_bms.diagnostics.ProtocolTrace
 import com.horse.jk_bms.model.BmsConfig
 import com.horse.jk_bms.model.BmsDeviceInfo
 import com.horse.jk_bms.model.BmsFaultInfo
 import com.horse.jk_bms.model.BmsRuntimeData
 import com.horse.jk_bms.model.BmsSystemLog
-import com.horse.jk_bms.protocol.FrameCode
-import com.horse.jk_bms.protocol.FrameDecoder
-import com.horse.jk_bms.protocol.FrameEncoder
-import com.horse.jk_bms.protocol.RuntimeDataParser
 import com.horse.jk_bms.protocol.ConfigParser
+import com.horse.jk_bms.connection.ConfigWriteVerifier
 import com.horse.jk_bms.protocol.DeviceInfoParser
 import com.horse.jk_bms.protocol.FaultInfoParser
+import com.horse.jk_bms.protocol.FrameCode
+import com.horse.jk_bms.protocol.FrameEncoder
+import com.horse.jk_bms.protocol.RuntimeDataParser
 import com.horse.jk_bms.protocol.SystemLogParser
+import com.horse.jk_bms.usb.BmsTransport
 import com.horse.jk_bms.usb.UsbDeviceInfo
-import com.horse.jk_bms.usb.UsbSerialManager
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import com.horse.jk_bms.usb.UsbEvent
+import com.horse.jk_bms.usb.UsbEventReceiver
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.io.IOException
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 sealed class BmsEvent {
-    data class RuntimeDataUpdated(val data: BmsRuntimeData) : BmsEvent()
-    data class ConfigUpdated(val config: BmsConfig) : BmsEvent()
-    data class DeviceInfoUpdated(val info: BmsDeviceInfo) : BmsEvent()
-    data class FaultInfoUpdated(val faults: BmsFaultInfo) : BmsEvent()
-    data class SystemLogUpdated(val log: BmsSystemLog) : BmsEvent()
     data class Error(val message: String) : BmsEvent()
 }
 
 @Singleton
 class BmsConnection @Inject constructor(
-    private val usbSerialManager: UsbSerialManager,
+    @ApplicationContext context: Context,
+    private val transport: BmsTransport,
     private val dataLogRepository: DataLogRepository,
+    private val usbEvents: UsbEventReceiver,
+    private val trace: ProtocolTrace,
 ) {
-    private val _events = MutableSharedFlow<BmsEvent>(extraBufferCapacity = 64)
-    val events: SharedFlow<BmsEvent> = _events.asSharedFlow()
-
-    private val _runtimeData = MutableStateFlow<BmsRuntimeData?>(null)
-    val runtimeData: StateFlow<BmsRuntimeData?> = _runtimeData.asStateFlow()
-
-    private val _config = MutableStateFlow<BmsConfig?>(null)
-    val config: StateFlow<BmsConfig?> = _config.asStateFlow()
-
-    private val _deviceInfo = MutableStateFlow<BmsDeviceInfo?>(null)
-    val deviceInfo: StateFlow<BmsDeviceInfo?> = _deviceInfo.asStateFlow()
-
-    private val _faultInfo = MutableStateFlow<BmsFaultInfo?>(null)
-    val faultInfo: StateFlow<BmsFaultInfo?> = _faultInfo.asStateFlow()
-
-    private val _systemLog = MutableStateFlow<BmsSystemLog?>(null)
-    val systemLog: StateFlow<BmsSystemLog?> = _systemLog.asStateFlow()
-
-    private val _isConnected = MutableStateFlow(false)
-    val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
-
-    private val _isPolling = MutableStateFlow(false)
-    val isPolling: StateFlow<Boolean> = _isPolling.asStateFlow()
-
-    private val _lastDataTimestamp = MutableStateFlow(0L)
-    val lastDataTimestamp: StateFlow<Long> = _lastDataTimestamp.asStateFlow()
-
-    private var pollerJob: Job? = null
-    private var counter = 0
-    private var cleanupCounter = 0
-    private var consecutiveFailures = 0
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val lifecycle = Mutex()
+    private val exchanges = Mutex()
+    private val mutableEvents = MutableSharedFlow<BmsEvent>(extraBufferCapacity = 64)
+    val events = mutableEvents.asSharedFlow()
+    private val runtime = MutableStateFlow<BmsRuntimeData?>(null)
+    val runtimeData = runtime.asStateFlow()
+    private val settings = MutableStateFlow<BmsConfig?>(null)
+    val config = settings.asStateFlow()
+    private val device = MutableStateFlow<BmsDeviceInfo?>(null)
+    val deviceInfo = device.asStateFlow()
+    private val faults = MutableStateFlow<BmsFaultInfo?>(null)
+    val faultInfo = faults.asStateFlow()
+    private val logs = MutableStateFlow<BmsSystemLog?>(null)
+    val systemLog = logs.asStateFlow()
+    private val connected = MutableStateFlow(false)
+    val isConnected = connected.asStateFlow()
+    private val polling = MutableStateFlow(false)
+    val isPolling = polling.asStateFlow()
+    private val timestamp = MutableStateFlow(0L)
+    val lastDataTimestamp = timestamp.asStateFlow()
+    private val state = MutableStateFlow(SessionState.DISCONNECTED)
+    val sessionState = state.asStateFlow()
+    private val age = MutableStateFlow(Long.MAX_VALUE)
+    val dataAgeMs = age.asStateFlow()
+    private val logError = MutableStateFlow<String?>(null)
+    val loggingError = logError.asStateFlow()
+    private val logging = Channel<suspend () -> Unit>(128)
+    private var poller: Job? = null
+    @Volatile private var connectingJob: Job? = null
+    @Volatile private var reconnecter: Job? = null
+    private var counter = 0
+    private var generation = 0L
+    private var lastReceived = 0L
+    private var selected: UsbDeviceInfo? = null
+    private var reconnectSerial: String? = null
+    @Volatile private var desiredConnection = false
+    private val writer: Job
 
-    fun listDevices(): List<UsbDeviceInfo> = usbSerialManager.listSerialDevices()
-
-    suspend fun connect(deviceInfo: UsbDeviceInfo): Result<Unit> {
-        val result = usbSerialManager.connect(deviceInfo)
-        if (result.isSuccess) {
-            _isConnected.value = true
-        } else {
-            _isConnected.value = false
-            _events.tryEmit(BmsEvent.Error(result.exceptionOrNull()?.message ?: "Connection failed"))
-        }
-        return result
-    }
-
-    fun disconnect() {
-        stopPolling()
-        usbSerialManager.disconnect()
-        _isConnected.value = false
-        _runtimeData.value = null
-        _config.value = null
-        _deviceInfo.value = null
-        _faultInfo.value = null
-        _systemLog.value = null
-    }
-
-    fun startPolling() {
-        if (_isPolling.value) return
-        _isPolling.value = true
-        pollerJob = scope.launch {
-            val pollSequence = listOf(
-                FrameCode.RUNTIME_DATA,
-                FrameCode.CONFIG_READ,
-                FrameCode.DEVICE_INFO,
-                FrameCode.FAULT_INFO,
-            )
-            var index = 0
-            while (isActive && usbSerialManager.isConnected) {
-                if (consecutiveFailures >= 5) {
-                    delay(2000)
-                    consecutiveFailures = 0
+    init {
+        usbEvents.register(context)
+        writer = scope.launch {
+            for (operation in logging) {
+                try { operation(); logError.value = null } catch (error: Exception) {
+                    if (error is CancellationException) throw error
+                    logError.value = "Recording paused: ${error.message ?: "storage error"}"
                 }
-                val frameCode = pollSequence[index % pollSequence.size]
-                val result = queryFrame(frameCode)
-                if (result.isFailure) {
-                    consecutiveFailures++
-                } else {
-                    consecutiveFailures = 0
+            }
+        }
+        scope.launch {
+            while (isActive) {
+                age.value = telemetryAge(SystemClock.elapsedRealtime(), lastReceived)
+                if (connected.value && state.value != SessionState.RECOVERING) {
+                    state.value = if (age.value > 2000) SessionState.STALE else SessionState.LIVE
                 }
-                index++
-                cleanupCounter++
-                if (cleanupCounter >= 600) {
-                    scope.launch { dataLogRepository.cleanup() }
-                    cleanupCounter = 0
+                delay(1000)
+            }
+        }
+        scope.launch {
+            usbEvents.events.collect { event ->
+                when (event) {
+                    is UsbEvent.DeviceDetached -> if (selected?.device?.deviceId == event.device.deviceId) {
+                        lifecycle.withLock { disconnectInternal(SessionState.RECOVERING) }
+                    }
+                    is UsbEvent.DeviceAttached -> {
+                        val previous = selected
+                        val serial = reconnectSerial
+                        if (desiredConnection && !connected.value && previous != null && serial != null && reconnecter?.isActive != true) {
+                            val match = listDevices().singleOrNull {
+                                it.device.vendorId == previous.device.vendorId &&
+                                    it.device.productId == previous.device.productId &&
+                                    it.portIndex == previous.portIndex && it.serial == serial
+                            }
+                            if (match != null) reconnecter = scope.launch { if (desiredConnection) connect(match) }
+                        }
+                    }
                 }
-                delay(100)
-            }
-            _isPolling.value = false
-        }
-    }
-
-    fun stopPolling() {
-        pollerJob?.cancel()
-        pollerJob = null
-        _isPolling.value = false
-    }
-
-    suspend fun queryFrame(frameCode: FrameCode): Result<*> {
-        val queryFrame = FrameEncoder.buildQuery(frameCode, counter++)
-        val result = usbSerialManager.sendAndReceive(queryFrame)
-
-        if (result.isFailure) {
-            val msg = result.exceptionOrNull()?.message ?: "Query failed"
-            _events.tryEmit(BmsEvent.Error(msg))
-            return result
-        }
-
-        val raw = FrameDecoder.findFrameInBuffer(result.getOrThrow())
-        if (raw == null) {
-            _events.tryEmit(BmsEvent.Error("Failed to decode response for ${frameCode.name}"))
-            return Result.failure<Nothing>(Exception("Decode failed"))
-        }
-
-        val (rawFrame, _) = raw
-        if (rawFrame.frameCode != frameCode) {
-            _events.tryEmit(BmsEvent.Error("Unexpected frame code: ${rawFrame.frameCode}, expected $frameCode"))
-            return Result.failure<Nothing>(Exception("Unexpected frame code"))
-        }
-
-        return when (frameCode) {
-            FrameCode.RUNTIME_DATA -> {
-                val data = RuntimeDataParser.parse(rawFrame.data)
-                _runtimeData.value = data
-                _lastDataTimestamp.value = System.currentTimeMillis()
-                _events.tryEmit(BmsEvent.RuntimeDataUpdated(data))
-                scope.launch { dataLogRepository.logRuntimeData(data) }
-                Result.success(data)
-            }
-            FrameCode.CONFIG_READ -> {
-                val cfg = ConfigParser.parse(rawFrame.data)
-                _config.value = cfg
-                _events.tryEmit(BmsEvent.ConfigUpdated(cfg))
-                scope.launch { dataLogRepository.logConfig(cfg) }
-                Result.success(cfg)
-            }
-            FrameCode.DEVICE_INFO -> {
-                val info = DeviceInfoParser.parse(rawFrame.data)
-                _deviceInfo.value = info
-                _events.tryEmit(BmsEvent.DeviceInfoUpdated(info))
-                scope.launch { dataLogRepository.logDeviceInfo(info) }
-                Result.success(info)
-            }
-            FrameCode.FAULT_INFO -> {
-                val faults = FaultInfoParser.parse(rawFrame.data)
-                _faultInfo.value = faults
-                _events.tryEmit(BmsEvent.FaultInfoUpdated(faults))
-                scope.launch { dataLogRepository.logFaultInfo(faults) }
-                Result.success(faults)
-            }
-            FrameCode.SYSTEM_LOG -> {
-                val log = SystemLogParser.parse(rawFrame.data)
-                _systemLog.value = log
-                _events.tryEmit(BmsEvent.SystemLogUpdated(log))
-                scope.launch { dataLogRepository.logSystemLog(log) }
-                Result.success(log)
-            }
-            FrameCode.CONFIG_WRITE -> {
-                Result.success(rawFrame)
             }
         }
     }
 
-    suspend fun writeConfig(config: BmsConfig): Result<Unit> {
-        stopPolling()
-        val writeFrame = FrameEncoder.buildConfigWrite(config, counter++)
-        val result = usbSerialManager.sendAndReceive(writeFrame)
+    fun listDevices(): List<UsbDeviceInfo> = transport.listSerialDevices()
 
-        if (result.isFailure) {
-            _events.tryEmit(BmsEvent.Error(result.exceptionOrNull()?.message ?: "Config write failed"))
+    suspend fun connect(info: UsbDeviceInfo): Result<Unit> = lifecycle.withLock {
+        desiredConnection = true
+        disconnectInternal()
+        reconnectSerial = null
+        selected = info
+        state.value = SessionState.PERMISSION_PENDING
+        connectingJob = currentCoroutineContext()[Job]
+        try {
+            val result = exchanges.withLock { transport.connect(info) }
+            if (result.isFailure) {
+                state.value = SessionState.DISCONNECTED
+                mutableEvents.tryEmit(BmsEvent.Error(result.exceptionOrNull()?.message ?: "Connection failed"))
+                return@withLock result
+            }
+            reconnectSerial = info.serial
+            state.value = SessionState.CONNECTING
+            connected.value = true
+            val sessionId = UUID.randomUUID().toString()
+            logging.send { dataLogRepository.startSession(sessionId, "usb:${info.device.vendorId}:${info.device.productId}:${info.serial.orEmpty()}:${info.portIndex}") }
             startPolling()
-            return result.map {}
+            Result.success(Unit)
+        } catch (error: CancellationException) {
+            transport.disconnect()
+            connected.value = false
+            state.value = SessionState.DISCONNECTED
+            throw error
+        } finally { connectingJob = null }
+    }
+
+    suspend fun disconnect() {
+        desiredConnection = false
+        val caller = currentCoroutineContext()[Job]
+        connectingJob?.takeIf { it != caller }?.cancel()
+        reconnecter?.takeIf { it != caller }?.cancel()
+        lifecycle.withLock {
+            reconnectSerial = null
+            disconnectInternal()
+            selected = null
         }
+    }
 
-        val raw = FrameDecoder.findFrameInBuffer(result.getOrThrow())
-        if (raw == null) {
-            _events.tryEmit(BmsEvent.Error("Failed to decode config write ACK"))
-            startPolling()
-            return Result.failure(Exception("No ACK"))
+    fun requestDisconnect() {
+        desiredConnection = false
+        connectingJob?.cancel()
+        reconnecter?.cancel()
+        scope.launch { disconnect() }
+    }
+
+    private suspend fun disconnectInternal(finalState: SessionState = SessionState.DISCONNECTED) {
+        poller?.cancelAndJoin()
+        poller = null
+        exchanges.withLock {
+            generation++
+            transport.disconnect()
+            connected.value = false
+            polling.value = false
+            state.value = finalState
+            runtime.value = null
+            settings.value = null
+            device.value = null
+            faults.value = null
+            logs.value = null
+            lastReceived = 0
+            timestamp.value = 0
+            age.value = Long.MAX_VALUE
+            logging.send { dataLogRepository.endSession() }
         }
+    }
 
-        val (ackFrame, _) = raw
-        val writtenConfig = ConfigParser.parse(ackFrame.data)
-        _config.value = writtenConfig
-        _events.tryEmit(BmsEvent.ConfigUpdated(writtenConfig))
+    private fun startPolling() {
+        if (poller?.isActive == true) return
+        polling.value = true
+        poller = scope.launch {
+            try {
+                queryFrame(FrameCode.DEVICE_INFO)
+                queryFrame(FrameCode.CONFIG_READ)
+                var cycles = 0
+                var failures = 0
+                while (isActive && connected.value) {
+                    val result = queryFrame(FrameCode.RUNTIME_DATA)
+                    failures = if (result.isFailure) failures + 1 else 0
+                    if (cycles++ % 20 == 0) queryFrame(FrameCode.FAULT_INFO)
+                    if (cycles % 600 == 0) log { dataLogRepository.cleanup() }
+                    if (failures >= 5) {
+                        state.value = SessionState.RECOVERING
+                        delay(2000)
+                        failures = 0
+                    }
+                    delay(250)
+                }
+            } finally { polling.value = false }
+        }
+    }
 
-        startPolling()
-        return Result.success(Unit)
+    suspend fun queryFrame(code: FrameCode): Result<*> {
+        val epoch = generation
+        return exchanges.withLock {
+            if (!connected.value || epoch != generation) return@withLock Result.failure<Nothing>(IOException("Session disconnected"))
+            try {
+                val request = FrameEncoder.buildQuery(code, counter++)
+                trace.record("tx", request)
+                val response = transport.exchange(request, code).getOrThrow()
+                require(response.frameCode == code) { "Unexpected response: ${response.frameCode}" }
+                val raw = request.copyOf().apply {
+                    this[4] = response.frameCode.code
+                    this[5] = response.counter.toByte()
+                    response.data.copyInto(this, 6)
+                    com.horse.jk_bms.protocol.Checksum.writeChecksum(this)
+                }
+                trace.record("rx", raw)
+                val parsed: Any = when (code) {
+                    FrameCode.RUNTIME_DATA -> RuntimeDataParser.parse(response.data).also {
+                        runtime.value = it
+                        lastReceived = SystemClock.elapsedRealtime()
+                        timestamp.value = System.currentTimeMillis()
+                        age.value = 0
+                        state.value = SessionState.LIVE
+                        val observedAt = timestamp.value
+                        log { dataLogRepository.logRuntimeData(it, observedAt) }
+                    }
+                    FrameCode.CONFIG_READ -> ConfigParser.parse(response.data).also { settings.value = it; log { dataLogRepository.logConfig(it) } }
+                    FrameCode.DEVICE_INFO -> DeviceInfoParser.parse(response.data).also { device.value = it; log { dataLogRepository.logDeviceInfo(it) } }
+                    FrameCode.FAULT_INFO -> FaultInfoParser.parse(response.data).also { faults.value = it; log { dataLogRepository.logFaultInfo(it) } }
+                    FrameCode.SYSTEM_LOG -> SystemLogParser.parse(response.data).also { logs.value = it; log { dataLogRepository.logSystemLog(it) } }
+                    FrameCode.CONFIG_WRITE -> throw IOException("Use verified configuration transaction")
+                }
+                Result.success(parsed)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                mutableEvents.tryEmit(BmsEvent.Error(error.message ?: "Request failed"))
+                Result.failure<Nothing>(error)
+            }
+        }
+    }
+
+    suspend fun writeConfig(requested: BmsConfig, baseline: BmsConfig): Result<Unit> = exchanges.withLock {
+        if (!BuildConfig.CONFIG_WRITES_VERIFIED) {
+            return@withLock Result.failure(IOException("Configuration writes await hardware compatibility validation"))
+        }
+        if (!connected.value) return@withLock Result.failure(IOException("Disconnected"))
+        try {
+            val applied = ConfigWriteVerifier.write(transport, requested, baseline) { counter++ }
+            settings.value = applied
+            log { dataLogRepository.logWrite(baseline, applied, "verified") }
+            Result.success(Unit)
+        } catch (error: Exception) {
+            log { dataLogRepository.logWrite(baseline, requested, "uncertain: ${error.message}") }
+            if (error is CancellationException) throw error
+            Result.failure(error)
+        }
+    }
+
+    private fun log(operation: suspend () -> Unit) {
+        if (!logging.trySend(operation).isSuccess) logError.value = "Recording queue full; some samples were not saved"
+    }
+
+    suspend fun close() {
+        disconnect()
+        logging.close()
+        writer.join()
+        scope.cancel()
     }
 }

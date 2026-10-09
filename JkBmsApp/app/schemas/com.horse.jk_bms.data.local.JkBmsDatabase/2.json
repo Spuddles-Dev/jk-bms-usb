@@ -1,0 +1,1481 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "a0fcec061bec11782ad9bd3f4a3fa638",
+    "entities": [
+      {
+        "tableName": "runtime_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `sessionId` TEXT NOT NULL DEFAULT '', `deviceId` TEXT NOT NULL DEFAULT '', `cellVoltages` TEXT NOT NULL, `cellStatus` TEXT NOT NULL, `cellVolAve` REAL NOT NULL, `maxVoltDelta` REAL NOT NULL, `celMaxVol` INTEGER NOT NULL, `celMinVol` INTEGER NOT NULL, `cellWireRes` TEXT NOT NULL, `tempMos` REAL NOT NULL, `batVol` REAL NOT NULL, `batWatt` REAL NOT NULL, `batCurrent` REAL NOT NULL, `batTemp1` REAL NOT NULL, `batTemp2` REAL NOT NULL, `sysAlarm` TEXT NOT NULL, `equCurrent` REAL NOT NULL, `equStatus` INTEGER NOT NULL, `soc` INTEGER NOT NULL, `socCapabilityRemain` REAL NOT NULL, `socFullChargeCapacity` REAL NOT NULL, `socCycleCount` INTEGER NOT NULL, `socCycleCapacity` REAL NOT NULL, `soh` INTEGER NOT NULL, `preDischarge` INTEGER NOT NULL, `userAlarm` INTEGER NOT NULL, `runtime` INTEGER NOT NULL, `chargeStatus` INTEGER NOT NULL, `dischargeStatus` INTEGER NOT NULL, `userAlarm2` TEXT NOT NULL, `timeDcOCPR` INTEGER NOT NULL, `timeDcSCPR` INTEGER NOT NULL, `timeCOCPR` INTEGER NOT NULL, `timeCSCPR` INTEGER NOT NULL, `timeUVPR` INTEGER NOT NULL, `timeOVPR` INTEGER NOT NULL, `tempSensorAbsent` TEXT NOT NULL, `heatingStatus` INTEGER NOT NULL, `timeEmerg` INTEGER NOT NULL, `dischrgCurCorrect` INTEGER NOT NULL, `volChargCur` REAL NOT NULL, `volDischargCur` REAL NOT NULL, `batVolCorrect` REAL NOT NULL, `chargPWM` INTEGER NOT NULL, `dischargPWM` INTEGER NOT NULL, `totalBatVol` REAL NOT NULL, `heatCurrent` REAL NOT NULL, `accStatus` INTEGER NOT NULL, `specialChargerSta` INTEGER NOT NULL, `startupFlag` INTEGER NOT NULL, `volC` REAL NOT NULL, `mcuid` INTEGER NOT NULL, `chargePlugged` INTEGER NOT NULL, `sysRunTicks` REAL NOT NULL, `pvdTrigTimestamps` REAL NOT NULL, `batTemp3` REAL NOT NULL, `batTemp4` REAL NOT NULL, `batTemp5` REAL NOT NULL, `chrgCurCorrect` INTEGER NOT NULL, `rtcCounter` INTEGER NOT NULL, `detailLogsCount` INTEGER NOT NULL, `timeEnterSleep` INTEGER NOT NULL, `pclModule` INTEGER NOT NULL, `batteryType` INTEGER NOT NULL, `chargeStatusTime` INTEGER NOT NULL, `chargeStatus2` INTEGER NOT NULL, `switchStatus` TEXT NOT NULL, `cellWireResStat` TEXT NOT NULL DEFAULT '[]', `enableFlags` TEXT NOT NULL DEFAULT '')",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "cellVoltages",
+            "columnName": "cellVoltages",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cellStatus",
+            "columnName": "cellStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cellVolAve",
+            "columnName": "cellVolAve",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxVoltDelta",
+            "columnName": "maxVoltDelta",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "celMaxVol",
+            "columnName": "celMaxVol",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "celMinVol",
+            "columnName": "celMinVol",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cellWireRes",
+            "columnName": "cellWireRes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tempMos",
+            "columnName": "tempMos",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batVol",
+            "columnName": "batVol",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batWatt",
+            "columnName": "batWatt",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batCurrent",
+            "columnName": "batCurrent",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batTemp1",
+            "columnName": "batTemp1",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batTemp2",
+            "columnName": "batTemp2",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sysAlarm",
+            "columnName": "sysAlarm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "equCurrent",
+            "columnName": "equCurrent",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "equStatus",
+            "columnName": "equStatus",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "soc",
+            "columnName": "soc",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "socCapabilityRemain",
+            "columnName": "socCapabilityRemain",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "socFullChargeCapacity",
+            "columnName": "socFullChargeCapacity",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "socCycleCount",
+            "columnName": "socCycleCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "socCycleCapacity",
+            "columnName": "socCycleCapacity",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "soh",
+            "columnName": "soh",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "preDischarge",
+            "columnName": "preDischarge",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userAlarm",
+            "columnName": "userAlarm",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "runtime",
+            "columnName": "runtime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargeStatus",
+            "columnName": "chargeStatus",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dischargeStatus",
+            "columnName": "dischargeStatus",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userAlarm2",
+            "columnName": "userAlarm2",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeDcOCPR",
+            "columnName": "timeDcOCPR",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeDcSCPR",
+            "columnName": "timeDcSCPR",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeCOCPR",
+            "columnName": "timeCOCPR",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeCSCPR",
+            "columnName": "timeCSCPR",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeUVPR",
+            "columnName": "timeUVPR",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeOVPR",
+            "columnName": "timeOVPR",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tempSensorAbsent",
+            "columnName": "tempSensorAbsent",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heatingStatus",
+            "columnName": "heatingStatus",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeEmerg",
+            "columnName": "timeEmerg",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dischrgCurCorrect",
+            "columnName": "dischrgCurCorrect",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volChargCur",
+            "columnName": "volChargCur",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volDischargCur",
+            "columnName": "volDischargCur",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batVolCorrect",
+            "columnName": "batVolCorrect",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargPWM",
+            "columnName": "chargPWM",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dischargPWM",
+            "columnName": "dischargPWM",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalBatVol",
+            "columnName": "totalBatVol",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heatCurrent",
+            "columnName": "heatCurrent",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accStatus",
+            "columnName": "accStatus",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "specialChargerSta",
+            "columnName": "specialChargerSta",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startupFlag",
+            "columnName": "startupFlag",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volC",
+            "columnName": "volC",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mcuid",
+            "columnName": "mcuid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargePlugged",
+            "columnName": "chargePlugged",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sysRunTicks",
+            "columnName": "sysRunTicks",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pvdTrigTimestamps",
+            "columnName": "pvdTrigTimestamps",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batTemp3",
+            "columnName": "batTemp3",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batTemp4",
+            "columnName": "batTemp4",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batTemp5",
+            "columnName": "batTemp5",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chrgCurCorrect",
+            "columnName": "chrgCurCorrect",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rtcCounter",
+            "columnName": "rtcCounter",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detailLogsCount",
+            "columnName": "detailLogsCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeEnterSleep",
+            "columnName": "timeEnterSleep",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pclModule",
+            "columnName": "pclModule",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batteryType",
+            "columnName": "batteryType",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargeStatusTime",
+            "columnName": "chargeStatusTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargeStatus2",
+            "columnName": "chargeStatus2",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "switchStatus",
+            "columnName": "switchStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cellWireResStat",
+            "columnName": "cellWireResStat",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'[]'"
+          },
+          {
+            "fieldPath": "enableFlags",
+            "columnName": "enableFlags",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_runtime_data_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_runtime_data_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_runtime_data_sessionId_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_runtime_data_sessionId_timestamp` ON `${TABLE_NAME}` (`sessionId`, `timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "config",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `sessionId` TEXT NOT NULL DEFAULT '', `deviceId` TEXT NOT NULL DEFAULT '', `volSmartSleep` REAL NOT NULL, `volCellUV` REAL NOT NULL, `volCellUVPR` REAL NOT NULL, `volCellOV` REAL NOT NULL, `volCellOVPR` REAL NOT NULL, `volBalanTrig` REAL NOT NULL, `volSOCP100` REAL NOT NULL, `volSOCP0` REAL NOT NULL, `volCellRCV` REAL NOT NULL, `volCellRFV` REAL NOT NULL, `volSysPwrOff` REAL NOT NULL, `timBatCOC` REAL NOT NULL, `timBatCOCPDly` INTEGER NOT NULL, `timBatCOCPRDly` INTEGER NOT NULL, `timBatDcOC` REAL NOT NULL, `timBatDcOCPDly` INTEGER NOT NULL, `timBatDcOCPRDly` INTEGER NOT NULL, `timBatSCPRDly` INTEGER NOT NULL, `curBalanMax` REAL NOT NULL, `tmpBatCOT` REAL NOT NULL, `tmpBatCOTPR` REAL NOT NULL, `tmpBatDcOT` REAL NOT NULL, `tmpBatDcOTPR` REAL NOT NULL, `tmpBatCUT` REAL NOT NULL, `tmpBatCUTPR` REAL NOT NULL, `tmpMosOT` REAL NOT NULL, `tmpMosOTPR` REAL NOT NULL, `cellCount` INTEGER NOT NULL, `batChargeEn` INTEGER NOT NULL, `batDischargeEn` INTEGER NOT NULL, `balanEn` INTEGER NOT NULL, `capBatCell` REAL NOT NULL, `scpDelay` INTEGER NOT NULL, `volStartBalan` REAL NOT NULL, `cellConWireRes` TEXT NOT NULL, `devAddr` INTEGER NOT NULL, `dischrgPreChrgT` INTEGER NOT NULL, `currentRange` REAL NOT NULL, `switchStatus` TEXT NOT NULL, `tmpStartHeating` INTEGER NOT NULL, `tmpStopHeating` INTEGER NOT NULL, `timeSmartSleep` INTEGER NOT NULL, `enableFlags` TEXT NOT NULL, `tmpBatDCHUT` INTEGER NOT NULL, `tmpBatDCHUTPR` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "volSmartSleep",
+            "columnName": "volSmartSleep",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellUV",
+            "columnName": "volCellUV",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellUVPR",
+            "columnName": "volCellUVPR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellOV",
+            "columnName": "volCellOV",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellOVPR",
+            "columnName": "volCellOVPR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volBalanTrig",
+            "columnName": "volBalanTrig",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volSOCP100",
+            "columnName": "volSOCP100",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volSOCP0",
+            "columnName": "volSOCP0",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellRCV",
+            "columnName": "volCellRCV",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellRFV",
+            "columnName": "volCellRFV",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volSysPwrOff",
+            "columnName": "volSysPwrOff",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timBatCOC",
+            "columnName": "timBatCOC",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timBatCOCPDly",
+            "columnName": "timBatCOCPDly",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timBatCOCPRDly",
+            "columnName": "timBatCOCPRDly",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timBatDcOC",
+            "columnName": "timBatDcOC",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timBatDcOCPDly",
+            "columnName": "timBatDcOCPDly",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timBatDcOCPRDly",
+            "columnName": "timBatDcOCPRDly",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timBatSCPRDly",
+            "columnName": "timBatSCPRDly",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "curBalanMax",
+            "columnName": "curBalanMax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatCOT",
+            "columnName": "tmpBatCOT",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatCOTPR",
+            "columnName": "tmpBatCOTPR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatDcOT",
+            "columnName": "tmpBatDcOT",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatDcOTPR",
+            "columnName": "tmpBatDcOTPR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatCUT",
+            "columnName": "tmpBatCUT",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatCUTPR",
+            "columnName": "tmpBatCUTPR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpMosOT",
+            "columnName": "tmpMosOT",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpMosOTPR",
+            "columnName": "tmpMosOTPR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cellCount",
+            "columnName": "cellCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batChargeEn",
+            "columnName": "batChargeEn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batDischargeEn",
+            "columnName": "batDischargeEn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "balanEn",
+            "columnName": "balanEn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capBatCell",
+            "columnName": "capBatCell",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scpDelay",
+            "columnName": "scpDelay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volStartBalan",
+            "columnName": "volStartBalan",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cellConWireRes",
+            "columnName": "cellConWireRes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "devAddr",
+            "columnName": "devAddr",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dischrgPreChrgT",
+            "columnName": "dischrgPreChrgT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentRange",
+            "columnName": "currentRange",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "switchStatus",
+            "columnName": "switchStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpStartHeating",
+            "columnName": "tmpStartHeating",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpStopHeating",
+            "columnName": "tmpStopHeating",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeSmartSleep",
+            "columnName": "timeSmartSleep",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enableFlags",
+            "columnName": "enableFlags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatDCHUT",
+            "columnName": "tmpBatDCHUT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tmpBatDCHUTPR",
+            "columnName": "tmpBatDCHUTPR",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_config_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_config_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_config_sessionId_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_config_sessionId_timestamp` ON `${TABLE_NAME}` (`sessionId`, `timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "device_info",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `sessionId` TEXT NOT NULL DEFAULT '', `deviceId` TEXT NOT NULL DEFAULT '', `manuDeviceID` TEXT NOT NULL, `maxCells` INTEGER NOT NULL, `hardwareVersion` TEXT NOT NULL, `softwareVersion` TEXT NOT NULL, `oddRunTime` INTEGER NOT NULL, `pwrOnTimes` INTEGER NOT NULL, `bluetoothName` TEXT NOT NULL, `bluetoothPwd` TEXT NOT NULL, `manufactureDate` TEXT NOT NULL, `deviceSN` TEXT NOT NULL, `userData` TEXT NOT NULL, `settingPassword` TEXT NOT NULL, `userData2` TEXT NOT NULL, `cmdSupportFlags` TEXT NOT NULL, `agencyId` INTEGER NOT NULL, `uart1ProtoNo` INTEGER NOT NULL, `canProtoNo` INTEGER NOT NULL, `uart1ProtoEnabled` TEXT NOT NULL, `hardwareOption` TEXT NOT NULL, `canProtoEnabled` TEXT NOT NULL, `uart2ProtoNo` INTEGER NOT NULL, `uart2ProtoEnabled` TEXT NOT NULL, `lcdBuzzerTrigger` INTEGER NOT NULL, `dry1Trigger` INTEGER NOT NULL, `dry2Trigger` INTEGER NOT NULL, `uartMPTLVer` INTEGER NOT NULL, `lcdBuzzerTriggerVal` INTEGER NOT NULL, `lcdBuzzerReleaseVal` INTEGER NOT NULL, `dry1TriggerVal` INTEGER NOT NULL, `dry1ReleaseVal` INTEGER NOT NULL, `dry2TriggerVal` INTEGER NOT NULL, `dry2ReleaseVal` INTEGER NOT NULL, `dataStoredPeriod` INTEGER NOT NULL, `rcvTime` REAL NOT NULL, `rfvTime` REAL NOT NULL, `canMPTLVer` INTEGER NOT NULL, `emergencyTime` INTEGER NOT NULL, `uart3ProtoNo` INTEGER NOT NULL, `uart3ProtoEnabled` TEXT NOT NULL, `reBulkSOC` INTEGER NOT NULL, `enableFlags` TEXT NOT NULL, `protocolVer` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "manuDeviceID",
+            "columnName": "manuDeviceID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxCells",
+            "columnName": "maxCells",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hardwareVersion",
+            "columnName": "hardwareVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "softwareVersion",
+            "columnName": "softwareVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "oddRunTime",
+            "columnName": "oddRunTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pwrOnTimes",
+            "columnName": "pwrOnTimes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bluetoothName",
+            "columnName": "bluetoothName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bluetoothPwd",
+            "columnName": "bluetoothPwd",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manufactureDate",
+            "columnName": "manufactureDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceSN",
+            "columnName": "deviceSN",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData",
+            "columnName": "userData",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "settingPassword",
+            "columnName": "settingPassword",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData2",
+            "columnName": "userData2",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cmdSupportFlags",
+            "columnName": "cmdSupportFlags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "agencyId",
+            "columnName": "agencyId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uart1ProtoNo",
+            "columnName": "uart1ProtoNo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canProtoNo",
+            "columnName": "canProtoNo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uart1ProtoEnabled",
+            "columnName": "uart1ProtoEnabled",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hardwareOption",
+            "columnName": "hardwareOption",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canProtoEnabled",
+            "columnName": "canProtoEnabled",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uart2ProtoNo",
+            "columnName": "uart2ProtoNo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uart2ProtoEnabled",
+            "columnName": "uart2ProtoEnabled",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lcdBuzzerTrigger",
+            "columnName": "lcdBuzzerTrigger",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dry1Trigger",
+            "columnName": "dry1Trigger",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dry2Trigger",
+            "columnName": "dry2Trigger",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uartMPTLVer",
+            "columnName": "uartMPTLVer",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lcdBuzzerTriggerVal",
+            "columnName": "lcdBuzzerTriggerVal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lcdBuzzerReleaseVal",
+            "columnName": "lcdBuzzerReleaseVal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dry1TriggerVal",
+            "columnName": "dry1TriggerVal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dry1ReleaseVal",
+            "columnName": "dry1ReleaseVal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dry2TriggerVal",
+            "columnName": "dry2TriggerVal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dry2ReleaseVal",
+            "columnName": "dry2ReleaseVal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataStoredPeriod",
+            "columnName": "dataStoredPeriod",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rcvTime",
+            "columnName": "rcvTime",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rfvTime",
+            "columnName": "rfvTime",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canMPTLVer",
+            "columnName": "canMPTLVer",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emergencyTime",
+            "columnName": "emergencyTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uart3ProtoNo",
+            "columnName": "uart3ProtoNo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uart3ProtoEnabled",
+            "columnName": "uart3ProtoEnabled",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reBulkSOC",
+            "columnName": "reBulkSOC",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enableFlags",
+            "columnName": "enableFlags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "protocolVer",
+            "columnName": "protocolVer",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_device_info_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_device_info_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_device_info_sessionId_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_device_info_sessionId_timestamp` ON `${TABLE_NAME}` (`sessionId`, `timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "fault_record",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `sessionId` TEXT NOT NULL DEFAULT '', `deviceId` TEXT NOT NULL DEFAULT '', `rtcCount` INTEGER NOT NULL, `logCode` INTEGER NOT NULL, `switchSta` TEXT NOT NULL, `maxVolCellNo` INTEGER NOT NULL, `minVolCellNo` INTEGER NOT NULL, `volCellMax` REAL NOT NULL, `volCellMin` REAL NOT NULL, `volBat` REAL NOT NULL, `curBat` REAL NOT NULL, `socCapRemain` REAL NOT NULL, `socFullChargeCap` REAL NOT NULL, `maxTemp` INTEGER NOT NULL, `minTemp` INTEGER NOT NULL, `tempMos` INTEGER NOT NULL, `heatCurrent` REAL NOT NULL, `eventKey` TEXT NOT NULL DEFAULT '')",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "rtcCount",
+            "columnName": "rtcCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "logCode",
+            "columnName": "logCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "switchSta",
+            "columnName": "switchSta",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxVolCellNo",
+            "columnName": "maxVolCellNo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minVolCellNo",
+            "columnName": "minVolCellNo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellMax",
+            "columnName": "volCellMax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volCellMin",
+            "columnName": "volCellMin",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volBat",
+            "columnName": "volBat",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "curBat",
+            "columnName": "curBat",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "socCapRemain",
+            "columnName": "socCapRemain",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "socFullChargeCap",
+            "columnName": "socFullChargeCap",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxTemp",
+            "columnName": "maxTemp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minTemp",
+            "columnName": "minTemp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tempMos",
+            "columnName": "tempMos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heatCurrent",
+            "columnName": "heatCurrent",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventKey",
+            "columnName": "eventKey",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fault_record_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fault_record_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_fault_record_sessionId_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fault_record_sessionId_timestamp` ON `${TABLE_NAME}` (`sessionId`, `timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "system_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `sessionId` TEXT NOT NULL DEFAULT '', `deviceId` TEXT NOT NULL DEFAULT '', `logCount` INTEGER NOT NULL, `check` INTEGER NOT NULL, `alarmLog` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "logCount",
+            "columnName": "logCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "check",
+            "columnName": "check",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "alarmLog",
+            "columnName": "alarmLog",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_system_log_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_system_log_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_system_log_sessionId_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_system_log_sessionId_timestamp` ON `${TABLE_NAME}` (`sessionId`, `timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `deviceId` TEXT NOT NULL, `name` TEXT NOT NULL, `startedAt` INTEGER NOT NULL, `endedAt` INTEGER, `firmware` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "startedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endedAt",
+            "columnName": "endedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "firmware",
+            "columnName": "firmware",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sessions_startedAt",
+            "unique": false,
+            "columnNames": [
+              "startedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sessions_startedAt` ON `${TABLE_NAME}` (`startedAt`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "write_audit",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `sessionId` TEXT NOT NULL, `deviceId` TEXT NOT NULL, `beforeJson` TEXT NOT NULL, `afterJson` TEXT NOT NULL, `outcome` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beforeJson",
+            "columnName": "beforeJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "afterJson",
+            "columnName": "afterJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outcome",
+            "columnName": "outcome",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_write_audit_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_write_audit_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a0fcec061bec11782ad9bd3f4a3fa638')"
+    ]
+  }
+}

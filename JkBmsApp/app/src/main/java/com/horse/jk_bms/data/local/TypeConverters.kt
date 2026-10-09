@@ -2,7 +2,7 @@ package com.horse.jk_bms.data.local
 
 import androidx.room.TypeConverter
 import org.json.JSONArray
-import java.util.Base64
+import android.util.Base64
 
 object Converters {
 
@@ -47,11 +47,11 @@ object Converters {
 
     @TypeConverter
     fun fromByteArray(value: ByteArray): String {
-        return Base64.getEncoder().encodeToString(value)
+        return Base64.encodeToString(value, Base64.NO_WRAP)
     }
 
     @TypeConverter
     fun toByteArray(value: String): ByteArray {
-        return Base64.getDecoder().decode(value)
+        return Base64.decode(value, Base64.NO_WRAP)
     }
 }

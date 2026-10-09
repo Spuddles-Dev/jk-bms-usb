@@ -3,6 +3,7 @@ package com.horse.jk_bms.di
 import android.content.Context
 import androidx.room.Room
 import com.horse.jk_bms.data.local.JkBmsDatabase
+import com.horse.jk_bms.data.local.DatabaseMigrations
 import com.horse.jk_bms.data.local.dao.ConfigDao
 import com.horse.jk_bms.data.local.dao.DeviceInfoDao
 import com.horse.jk_bms.data.local.dao.FaultDao
@@ -26,7 +27,7 @@ object DatabaseModule {
             context,
             JkBmsDatabase::class.java,
             "jk-bms-db",
-        ).build()
+        ).addMigrations(DatabaseMigrations.FROM_1_TO_2).build()
     }
 
     @Provides

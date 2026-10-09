@@ -19,6 +19,7 @@ import com.horse.jk_bms.viewmodel.ConnectionViewModel
 @Composable
 fun ConnectionScreen(
     onConnected: () -> Unit,
+    onHistory: () -> Unit = {},
     viewModel: ConnectionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -53,6 +54,7 @@ fun ConnectionScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(24.dp))
+            TextButton(onClick = onHistory) { Text("Browse session history") }
 
             if (state.isScanning) {
                 CircularProgressIndicator()

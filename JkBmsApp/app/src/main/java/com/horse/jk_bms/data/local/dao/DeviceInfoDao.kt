@@ -7,6 +7,8 @@ import com.horse.jk_bms.data.local.entity.DeviceInfoEntity
 
 @Dao
 interface DeviceInfoDao {
+    @Query("DELETE FROM device_info WHERE timestamp < :before")
+    suspend fun deleteOlderThan(before: Long): Int
     @Insert
     suspend fun insert(entity: DeviceInfoEntity): Long
 

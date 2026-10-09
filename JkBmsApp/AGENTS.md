@@ -16,10 +16,10 @@ Android app (Kotlin + Jetpack Compose) communicating with a JK-B2A20S20P BMS ove
 .\gradlew test
 
 # Run a single test class
-.\gradlew test --tests "com.horse.jk_bms.protocol.ChecksumTest"
+.\gradlew testDebugUnitTest --tests "com.horse.jk_bms.protocol.ChecksumTest"
 
 # Run a single test method
-.\gradlew test --tests "com.horse.jk_bms.protocol.ChecksumTest.testCalculateValidFrame"
+.\gradlew testDebugUnitTest --tests "com.horse.jk_bms.protocol.ChecksumTest.testCalculateValidFrame"
 
 # Instrumented tests (requires device/emulator)
 .\gradlew connectedAndroidTest
@@ -31,7 +31,7 @@ Android app (Kotlin + Jetpack Compose) communicating with a JK-B2A20S20P BMS ove
 Requires `local.properties` with `sdk.dir=<Android-SDK-path>` (not committed).
 APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
-There is no ktlint or detekt configured. There is no lint command. Verify code by running `.\gradlew test`.
+There is no ktlint or detekt configured. Run `.\gradlew.bat test lintDebug assembleDebug assembleRelease` with a complete JDK 21 and SDK platform 36. Run `connectedDebugAndroidTest` on an emulator/device. Source bytecode targets Java 17.
 
 ## Project Structure
 
@@ -52,14 +52,14 @@ app/src/main/java/com/horse/jk_bms/
 │   └── export/        # CsvFormatter, JsonFormatter, DataExporter (+ FileProvider share)
 ├── repository/        # BmsRepository — facade over BmsConnection for ViewModels
 ├── di/                # Hilt modules: UsbModule, DatabaseModule
-├── viewmodel/         # @HiltViewModel, expose StateFlow (7 VMs)
-└── ui/                # Compose screens (7 screens)
+├── viewmodel/         # @HiltViewModel, expose StateFlow
+└── ui/                # Compose screens
     ├── theme/         # Color.kt, Theme.kt (Material3 dynamic colors)
-    ├── navigation/    # Screen sealed class (7 routes), AppNavHost
+    ├── navigation/    # Screen routes plus history/diagnostics, AppNavHost
     └── screen/        # Per-feature Compose screens
 ```
 
-Tests: `app/src/test/java/com/horse/jk_bms/protocol/` (9 test files, ~150+ tests)
+Tests: `app/src/test/java/com/horse/jk_bms/` includes protocol, connection, persistence/export, settings, history and alert regressions. Instrumented tests live under `src/androidTest`.
 
 ## Architecture
 
@@ -67,10 +67,10 @@ Clean layered architecture — each layer only depends on layers below:
 `protocol/` + `usb/` → `connection/` → `repository/` → `viewmodel/` → `ui/`
 
 - **DI**: Hilt with KSP. `@HiltAndroidApp` on `JkBmsApp.kt`, `@AndroidEntryPoint` on `MainActivity`, `@HiltViewModel` on all VMs.
-- **Navigation**: Single `MainActivity` → `AppNavHost` → 7 `Screen` routes via navigation-compose.
+- **Navigation**: Single `MainActivity` → `AppNavHost` → connection, dashboard, cells, settings, device, faults, logs, history and diagnostics routes via navigation-compose.
 - **State**: `StateFlow<T>` for VM state, `SharedFlow<T>` for one-shot events.
 - **Async**: `Dispatchers.IO` for heavy operations, `Dispatchers.Main` for UI.
-- **Database**: Room with 5 entities, auto-logs every poll response, 7-day cleanup every ~600 polls.
+- **Database**: Room version 2 with five telemetry/snapshot tables plus sessions and write audit. Changed snapshots and per-session fault deduplication; bounded recording queue; seven-day retention for all history tables.
 - **Export**: CSV + JSON formatters, FileProvider share intent.
 
 ## Code Style
@@ -118,10 +118,10 @@ Full spec: `../protocol-complete.md`
 
 - Every frame is exactly **300 bytes**: `55 AA EB 90` header (4B) + frame code (1B) + counter (1B) + data (293B) + sum8 checksum (1B)
 - Host sends all-zeros 300-byte query → BMS responds with data frame of same frame code
-- Config write: frame code `0x04` with values in 293-byte data, BMS echoes back
+- Config write: frame code `0x04` uses the archived downstream layout. Actual ACK behaviour awaits captures; writes remain gated by CONFIG_WRITES_VERIFIED=false.
 - All multi-byte values are **little-endian** with scale factors (0.001 for mV/mA, 0.1 for deci-degrees)
 - Frame codes: `0x01`=config read, `0x02`=runtime, `0x03`=device info, `0x04`=config write, `0x05`=sys log, `0x06`=faults
-- Polling cycle: Runtime → Config → DeviceInfo → Faults, 100ms gap between queries
+- Read device/config on connect, runtime each cycle with 250ms delay, faults every 20 cycles, logs on demand. All requests and verified write transactions share one mutex.
 - Counter increments per sent frame, wraps at 255
 
 ### Protocol/Field Decoding Conventions
@@ -136,7 +136,7 @@ Full spec: `../protocol-complete.md`
 - Use JUnit 4 (`org.junit.Test`), MockK, kotlinx-coroutines-test, Turbine
 - Test location mirrors source: `app/src/test/java/com/horse/jk_bms/...`
 - Test class naming: `<ClassUnderTest>Test` (`ChecksumTest`, `FrameDecoderTest`)
-- 9 test files: ChecksumTest, FrameDecoderTest, FrameEncoderTest, FieldDecoderTest, FieldEncoderTest, ConfigParserTest, RuntimeDataParserTest, DeviceInfoParserTest, FaultInfoParserTest
+- Original protocol suites are supplemented by development, verified-write, session, USB permission, persistence/export, editor and history/alert regressions.
 
 ## Dependencies (key)
 

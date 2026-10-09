@@ -8,6 +8,9 @@ import com.horse.jk_bms.data.local.dao.DeviceInfoDao
 import com.horse.jk_bms.data.local.dao.FaultDao
 import com.horse.jk_bms.data.local.dao.RuntimeDataDao
 import com.horse.jk_bms.data.local.dao.SystemLogDao
+import com.horse.jk_bms.data.local.dao.SessionDao
+import com.horse.jk_bms.data.local.entity.SessionEntity
+import com.horse.jk_bms.data.local.entity.WriteAuditEntity
 import com.horse.jk_bms.data.local.entity.ConfigEntity
 import com.horse.jk_bms.data.local.entity.DeviceInfoEntity
 import com.horse.jk_bms.data.local.entity.FaultRecordEntity
@@ -21,12 +24,15 @@ import com.horse.jk_bms.data.local.entity.SystemLogEntity
         DeviceInfoEntity::class,
         FaultRecordEntity::class,
         SystemLogEntity::class,
+        SessionEntity::class,
+        WriteAuditEntity::class,
     ],
-    version = 1,
-    exportSchema = false,
+    version = 2,
+    exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class JkBmsDatabase : RoomDatabase() {
+    abstract fun sessionDao(): SessionDao
     abstract fun runtimeDataDao(): RuntimeDataDao
     abstract fun configDao(): ConfigDao
     abstract fun deviceInfoDao(): DeviceInfoDao

@@ -21,11 +21,14 @@ fun LogsScreen(
     viewModel: LogsViewModel = hiltViewModel(),
 ) {
     val systemLog by viewModel.systemLog.collectAsState()
+    val loading by viewModel.loading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("System Log") },
+                actions = { TextButton(onClick = viewModel::refresh, enabled = !loading) { Text("Refresh") } },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -39,7 +42,7 @@ fun LogsScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("No log data available")
+                Text(if (loading) "Loading system logs…" else error ?: "No log data available")
             }
             return@Scaffold
         }
@@ -54,6 +57,8 @@ fun LogsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (loading) Text("Refreshing system logs…")
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Text(
                 "Log Count: ${log.logCount}",
                 style = MaterialTheme.typography.titleMedium,

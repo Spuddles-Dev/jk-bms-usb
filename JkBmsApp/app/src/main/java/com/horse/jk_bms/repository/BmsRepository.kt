@@ -24,20 +24,22 @@ class BmsRepository @Inject constructor(
     val isConnected: StateFlow<Boolean> = bmsConnection.isConnected
     val isPolling: StateFlow<Boolean> = bmsConnection.isPolling
     val lastDataTimestamp: StateFlow<Long> = bmsConnection.lastDataTimestamp
+    val sessionState = bmsConnection.sessionState
+    val dataAgeMs = bmsConnection.dataAgeMs
+    val loggingError = bmsConnection.loggingError
 
     fun listDevices(): List<UsbDeviceInfo> = bmsConnection.listDevices()
 
     suspend fun connect(deviceInfo: UsbDeviceInfo): Result<Unit> {
         val result = bmsConnection.connect(deviceInfo)
-        if (result.isSuccess) {
-            bmsConnection.startPolling()
-        }
         return result
     }
 
-    fun disconnect() {
+    suspend fun disconnect() {
         bmsConnection.disconnect()
     }
+
+    fun requestDisconnect() = bmsConnection.requestDisconnect()
 
     suspend fun refreshConfig(): Result<*> = bmsConnection.queryFrame(FrameCode.CONFIG_READ)
 
@@ -47,5 +49,5 @@ class BmsRepository @Inject constructor(
 
     suspend fun refreshSystemLog(): Result<*> = bmsConnection.queryFrame(FrameCode.SYSTEM_LOG)
 
-    suspend fun writeConfig(config: BmsConfig): Result<Unit> = bmsConnection.writeConfig(config)
+    suspend fun writeConfig(config: BmsConfig, baseline: BmsConfig): Result<Unit> = bmsConnection.writeConfig(config, baseline)
 }

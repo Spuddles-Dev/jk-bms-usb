@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import java.io.File
 import javax.inject.Inject
 
@@ -31,29 +32,35 @@ class ExportViewModel @Inject constructor(
     val state: StateFlow<ExportState> = _state.asStateFlow()
 
     fun exportRuntimeData(context: Context, format: ExportFormat, hours: Int = 24) {
+        if (_state.value.isExporting) return
+        _state.value = ExportState(isExporting = true)
         viewModelScope.launch {
             _state.value = ExportState(isExporting = true)
             try {
                 val fromTimestamp = System.currentTimeMillis() - hours * 60 * 60 * 1000L
                 val cacheDir = File(context.cacheDir, "exports").also { it.mkdirs() }
                 val file = dataExporter.exportRuntimeData(fromTimestamp, format, cacheDir)
-                _state.value = ExportState(exportComplete = true, exportedFile = file.absolutePath)
                 shareFile(context, file)
+                _state.value = ExportState(exportComplete = true, exportedFile = file.absolutePath)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _state.value = ExportState(error = e.message)
             }
         }
     }
 
     fun exportFaults(context: Context, format: ExportFormat) {
+        if (_state.value.isExporting) return
+        _state.value = ExportState(isExporting = true)
         viewModelScope.launch {
             _state.value = ExportState(isExporting = true)
             try {
                 val cacheDir = File(context.cacheDir, "exports").also { it.mkdirs() }
                 val file = dataExporter.exportFaults(cacheDir, format)
-                _state.value = ExportState(exportComplete = true, exportedFile = file.absolutePath)
                 shareFile(context, file)
+                _state.value = ExportState(exportComplete = true, exportedFile = file.absolutePath)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _state.value = ExportState(error = e.message)
             }
         }
@@ -66,7 +73,7 @@ class ExportViewModel @Inject constructor(
             file,
         )
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/*"
+            type = if (file.extension == "json") "application/json" else "text/csv"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -74,6 +81,7 @@ class ExportViewModel @Inject constructor(
     }
 
     fun resetState() {
+        if (_state.value.isExporting) return
         _state.value = ExportState()
     }
 }

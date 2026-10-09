@@ -2,6 +2,7 @@
 *.exe
 *.dll
 *.jar
+!JkBmsApp/gradle/wrapper/gradle-wrapper.jar
 *.class
 *.dex
 
@@ -24,3 +25,8 @@ JkBmsApp/.cxx/
 
 .worktrees/
 .idea/
+
+dist/
+*.jks
+*.keystore
+*.password.dpapi

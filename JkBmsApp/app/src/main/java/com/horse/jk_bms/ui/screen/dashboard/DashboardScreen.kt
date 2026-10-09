@@ -15,6 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.horse.jk_bms.model.BmsRuntimeData
 import com.horse.jk_bms.viewmodel.DashboardViewModel
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +29,7 @@ fun DashboardScreen(
     onFaultsClick: () -> Unit,
     onLogsClick: () -> Unit,
     onDisconnect: () -> Unit,
+    onHistory: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val runtimeData by viewModel.runtimeData.collectAsState()
@@ -32,16 +37,16 @@ fun DashboardScreen(
     val lastDataTimestamp by viewModel.lastDataTimestamp.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
 
-    val isStale = lastDataTimestamp > 0 && (System.currentTimeMillis() - lastDataTimestamp) > 2000
-
-    var staleRefresh by remember { mutableStateOf(0L) }
-    LaunchedEffect(isConnected) {
-        while (isConnected) {
-            staleRefresh = System.currentTimeMillis()
-            kotlinx.coroutines.delay(1000)
-        }
+    val ageMs by viewModel.dataAgeMs.collectAsState()
+    val sessionState by viewModel.sessionState.collectAsState()
+    val loggingError by viewModel.loggingError.collectAsState()
+    val backgroundEnabled by viewModel.backgroundEnabled.collectAsState()
+    var backgroundError by remember { mutableStateOf<String?>(null) }
+    val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) backgroundError = viewModel.enableBackground().exceptionOrNull()?.message
+        else backgroundError = "Notification permission is needed for background alerts"
     }
-    val isStaleLive = lastDataTimestamp > 0 && (System.currentTimeMillis() - lastDataTimestamp) > 2000
+    val isStaleLive = isConnected && ageMs > 2000
 
     Scaffold(
         topBar = {
@@ -66,7 +71,7 @@ fun DashboardScreen(
                     IconButton(onClick = onDeviceInfoClick) {
                         Icon(Icons.Default.Info, "Device Info")
                     }
-                    IconButton(onClick = onDisconnect) {
+                    IconButton(onClick = { viewModel.disconnect(onDisconnect) }) {
                         Icon(Icons.Default.UsbOff, "Disconnect")
                     }
                 },
@@ -144,6 +149,16 @@ fun DashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Text("Session: ${sessionState.name.lowercase().replace('_', ' ')}")
+            TextButton(onClick = onHistory) { Text("Session history and trends") }
+            TextButton(onClick = {
+                if (backgroundEnabled) viewModel.disableBackground()
+                else if (Build.VERSION.SDK_INT >= 33) notifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                else backgroundError = viewModel.enableBackground().exceptionOrNull()?.message
+            }) { Text(if (backgroundEnabled) "Stop background monitoring" else "Enable background monitoring and alerts") }
+            if (!backgroundEnabled) Text("Monitoring stops when the app leaves the foreground")
+            backgroundError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            loggingError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             StatusRow("Battery Voltage", "%.2f V".format(data.batVol))
             StatusRow("Current", "%.2f A".format(data.batCurrent))
             StatusRow("Power", "%.1f W".format(data.batWatt))
@@ -153,7 +168,7 @@ fun DashboardScreen(
             StatusRow("Cycle Count", "${data.socCycleCount}")
 
             if (lastDataTimestamp > 0) {
-                val elapsed = (System.currentTimeMillis() - lastDataTimestamp) / 1000
+                val elapsed = ageMs / 1000
                 val timeStr = when {
                     elapsed < 5 -> "just now"
                     elapsed < 60 -> "${elapsed}s ago"
@@ -179,9 +194,11 @@ fun DashboardScreen(
             StatusRow("MOS", "%.1f °C".format(data.tempMos))
             StatusRow("Battery 1", "%.1f °C".format(data.batTemp1))
             StatusRow("Battery 2", "%.1f °C".format(data.batTemp2))
-            if (data.batTemp3 != 0f) StatusRow("Battery 3", "%.1f °C".format(data.batTemp3))
-            if (data.batTemp4 != 0f) StatusRow("Battery 4", "%.1f °C".format(data.batTemp4))
-            if (data.batTemp5 != 0f) StatusRow("Battery 5", "%.1f °C".format(data.batTemp5))
+            StatusRow("Battery 3", "%.1f °C".format(data.batTemp3))
+            StatusRow("Battery 4", "%.1f °C".format(data.batTemp4))
+            StatusRow("Battery 5", "%.1f °C".format(data.batTemp5))
+            Text("Sensor flags (raw): ${data.tempSensorAbsent.joinToString("") { if (it) "1" else "0" }}")
+            Text("Sensor flag polarity awaits hardware validation; zero readings may be unavailable sensors.")
 
             HorizontalDivider()
 

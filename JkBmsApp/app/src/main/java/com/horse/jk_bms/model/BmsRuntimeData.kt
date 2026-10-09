@@ -66,6 +66,8 @@ data class BmsRuntimeData(
     val chargeStatusTime: Int = 0,
     val chargeStatus2: Int = 0,
     val switchStatus: BooleanArray = BooleanArray(3),
+    val cellWireResStat: BooleanArray = BooleanArray(32),
+    val enableFlags: ByteArray = ByteArray(12),
 ) {
     val activeCellCount: Int get() = cellVoltages.count { it > 0f }
     val isCharging: Boolean get() = batCurrent > 0f

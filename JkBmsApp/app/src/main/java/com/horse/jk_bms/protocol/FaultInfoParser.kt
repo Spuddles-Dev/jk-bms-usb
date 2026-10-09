@@ -25,7 +25,7 @@ object FaultInfoParser {
 
         return BmsFaultInfo(
             beginIndex = beginIndex,
-            count = count,
+            count = records.size,
             records = records,
         )
     }

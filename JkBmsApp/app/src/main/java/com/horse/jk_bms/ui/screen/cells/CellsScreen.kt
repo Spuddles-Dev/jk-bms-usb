@@ -22,6 +22,8 @@ fun CellsScreen(
 ) {
     val runtimeData by viewModel.runtimeData.collectAsState()
     val data = runtimeData
+    var sortByVoltage by remember { mutableStateOf(false) }
+    var pinned by remember { mutableStateOf(emptySet<Int>()) }
 
     Scaffold(
         topBar = {
@@ -72,9 +74,14 @@ fun CellsScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             Text("Individual Cells", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            TextButton(onClick = { sortByVoltage = !sortByVoltage }) {
+                Text(if (sortByVoltage) "Sort by cell number" else "Sort by voltage")
+            }
             Spacer(modifier = Modifier.height(4.dp))
 
-            for (i in 0 until 32) {
+            val order = (0 until 32).sortedWith(compareBy<Int> { it !in pinned }
+                .thenBy { if (sortByVoltage) data.cellVoltages[it] else it.toFloat() })
+            for (i in order) {
                 val voltage = data.cellVoltages[i]
                 if (voltage <= 0f) continue
 
@@ -89,6 +96,10 @@ fun CellsScreen(
                     isMax = isMax,
                     isMin = isMin,
                 )
+                TextButton(onClick = { pinned = if (i in pinned) pinned - i else pinned + i }) {
+                    Text(if (i in pinned) "Unpin cell ${i + 1}" else "Pin cell ${i + 1}")
+                }
+                if (data.cellWireResStat.getOrElse(i) { false }) Text("Wiring status flag set for cell ${i + 1}")
             }
         }
     }

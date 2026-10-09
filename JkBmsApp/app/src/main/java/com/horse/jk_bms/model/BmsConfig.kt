@@ -46,7 +46,13 @@ data class BmsConfig(
     val enableFlags: ByteArray = ByteArray(9),
     val tmpBatDCHUT: Int = 0,
     val tmpBatDCHUTPR: Int = 0,
+    val rawPayload: ByteArray? = null,
 ) {
-    override fun equals(other: Any?): Boolean = this === other
-    override fun hashCode(): Int = System.identityHashCode(this)
+    override fun equals(other: Any?): Boolean = other is BmsConfig &&
+        com.horse.jk_bms.protocol.ConfigSchema.fields.all { it.get(this) == it.get(other) } &&
+        cellConWireRes.contentEquals(other.cellConWireRes) &&
+        switchStatus.contentEquals(other.switchStatus) && enableFlags.contentEquals(other.enableFlags)
+
+    override fun hashCode(): Int = 31 * cellConWireRes.contentHashCode() +
+        com.horse.jk_bms.protocol.ConfigSchema.fields.map { it.get(this) }.hashCode()
 }

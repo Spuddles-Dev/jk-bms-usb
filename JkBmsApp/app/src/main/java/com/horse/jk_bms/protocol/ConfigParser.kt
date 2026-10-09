@@ -56,6 +56,7 @@ object ConfigParser {
         val tmpBatDCHUTPR = FieldDecoder.readI8(data, 291)
 
         return BmsConfig(
+            rawPayload = data.copyOfRange(0, 293),
             volSmartSleep = volSmartSleep,
             volCellUV = volCellUV,
             volCellUVPR = volCellUVPR,

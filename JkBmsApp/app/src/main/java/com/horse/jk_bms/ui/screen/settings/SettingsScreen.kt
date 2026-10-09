@@ -1,303 +1,132 @@
 package com.horse.jk_bms.ui.screen.settings
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.horse.jk_bms.protocol.ConfigFieldValidator
+import com.horse.jk_bms.protocol.ConfigSchema
+import com.horse.jk_bms.data.export.CsvFormatter
 import com.horse.jk_bms.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
-    onBack: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel(),
-) {
+fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
-    val config = state.editConfig
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("BMS Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                actions = {
-                    if (state.hasUnsavedChanges) {
-                        TextButton(onClick = { viewModel.resetEdits() }) {
-                            Text("Reset")
+    var confirm by remember { mutableStateOf(false) }
+    var backupName by remember { mutableStateOf("") }
+    var chooseBackup by remember { mutableStateOf(false) }
+    Scaffold(topBar = {
+        TopAppBar(title = { Text("BMS Settings") }, navigationIcon = {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+        }, actions = { TextButton(onClick = viewModel::resetEdits) { Text("Reset") } })
+    }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (state.config == null) {
+                Text("Connect to a BMS to read settings")
+                return@Column
+            }
+            if (!viewModel.writesEnabled) Text("Monitoring preview: writes await hardware validation")
+            OutlinedTextField(value = backupName, onValueChange = { backupName = it },
+                label = { Text("Backup name (optional)") }, isError = backupName.length > 80,
+                modifier = Modifier.fillMaxWidth(), singleLine = true)
+            TextButton(onClick = { viewModel.saveBackup(backupName) }, enabled = backupName.length <= 80) {
+                Text("Save configuration backup")
+            }
+            TextButton(onClick = viewModel::loadLatestBackup) { Text("Compare latest backup") }
+            TextButton(onClick = { viewModel.refreshBackups(); chooseBackup = true }) { Text("Choose saved backup") }
+            DropdownMenu(expanded = chooseBackup, onDismissRequest = { chooseBackup = false }) {
+                if (state.backups.isEmpty()) DropdownMenuItem(text = { Text("No matching backups") }, onClick = {}, enabled = false)
+                state.backups.forEach { backup ->
+                    DropdownMenuItem(text = { Text("${backup.name} • ${CsvFormatter.utc(backup.savedAt)}") },
+                        onClick = { chooseBackup = false; viewModel.loadBackup(backup.id) })
+                }
+            }
+            state.backupMessage?.let { Text(it) }
+            state.error?.let { Text(it) }
+            if (state.conflicts.isNotEmpty()) Text("BMS settings changed: ${state.conflicts.joinToString()}. Reset to refresh.")
+            ConfigSchema.fields.forEach { field ->
+                OutlinedTextField(
+                    value = state.inputs[field.name].orEmpty(),
+                    onValueChange = { viewModel.updateInput(field.name, it) },
+                    label = { Text(field.label) },
+                    suffix = { Text(field.unit) },
+                    supportingText = { Text(state.inputErrors[field.name] ?: "${field.min}–${field.max}") },
+                    isError = field.name in state.inputErrors || field.name in state.conflicts,
+                    enabled = !state.isWriting,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = if (field.integral) KeyboardType.Number else KeyboardType.Decimal),
+                )
+            }
+            state.editConfig?.let { edited ->
+                val invalid = ConfigFieldValidator.validateAll(edited).filterValues { !it }.keys
+                if (invalid.isNotEmpty()) Text("Check configuration: ${invalid.joinToString()}")
+                Text("Capability bits are read-only. Array values are preserved unless a backup is selected.")
+                if ("arrays" in state.dirty) {
+                    Text("Backup connection-wire resistances: ${edited.cellConWireRes.joinToString()}")
+                    Text("Backup switch bits: ${edited.switchStatus.indices.filter { edited.switchStatus[it] }}")
+                }
+            }
+            if (state.writeSuccess == true) Text("Configuration verified by readback")
+            Button(onClick = { confirm = true }, enabled = viewModel.writesEnabled && state.hasUnsavedChanges &&
+                state.isValid && !state.isWriting, modifier = Modifier.fillMaxWidth()) { Text("Review and write") }
+            Spacer(Modifier.height(24.dp))
+        }
+        if (confirm) {
+            val changes = ConfigSchema.fields.filter { it.name in state.dirty }.joinToString("\n") {
+                "${it.label}: ${state.config?.let(it.get)} → ${state.inputs[it.name]} ${it.unit}"
+            } + if ("arrays" in state.dirty) buildString {
+                val before = state.config
+                val after = state.editConfig
+                if (before != null && after != null) {
+                    before.cellConWireRes.indices.forEach { index ->
+                        if (before.cellConWireRes[index] != after.cellConWireRes[index]) {
+                            append("\nWire ${index + 1}: ${before.cellConWireRes[index]} → ${after.cellConWireRes[index]} mΩ")
                         }
                     }
-                },
-            )
-        },
-    ) { padding ->
-        if (config == null) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-            return@Scaffold
-        }
-
-        var showConfirmDialog by remember { mutableStateOf(false) }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            SectionHeader("Voltage Settings")
-            EditableField("Smart Sleep Voltage", config.volSmartSleep, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volSmartSleep = v) }
-            }
-            EditableField("Cell UVP", config.volCellUV, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volCellUV = v) }
-            }
-            EditableField("Cell UVPR", config.volCellUVPR, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volCellUVPR = v) }
-            }
-            EditableField("Cell OVP", config.volCellOV, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volCellOV = v) }
-            }
-            EditableField("Cell OVPR", config.volCellOVPR, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volCellOVPR = v) }
-            }
-            EditableField("Balance Trigger", config.volBalanTrig, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volBalanTrig = v) }
-            }
-            EditableField("SOC 100% Volt", config.volSOCP100, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volSOCP100 = v) }
-            }
-            EditableField("SOC 0% Volt", config.volSOCP0, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volSOCP0 = v) }
-            }
-            EditableField("Start Balance Volt", config.volStartBalan, "V") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(volStartBalan = v) }
-            }
-
-            SectionHeader("Current Settings")
-            EditableField("Charge Current Limit", config.timBatCOC, "A") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(timBatCOC = v) }
-            }
-            EditableField("Discharge Current Limit", config.timBatDcOC, "A") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(timBatDcOC = v) }
-            }
-            EditableField("Max Balance Current", config.curBalanMax, "A") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(curBalanMax = v) }
-            }
-            EditableField("Current Range", config.currentRange, "A") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(currentRange = v) }
-            }
-
-            SectionHeader("Temperature Protections")
-            EditableField("Charge OTP", config.tmpBatCOT, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpBatCOT = v) }
-            }
-            EditableField("Charge OTPR", config.tmpBatCOTPR, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpBatCOTPR = v) }
-            }
-            EditableField("Discharge OTP", config.tmpBatDcOT, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpBatDcOT = v) }
-            }
-            EditableField("Discharge OTPR", config.tmpBatDcOTPR, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpBatDcOTPR = v) }
-            }
-            EditableField("Charge UTP", config.tmpBatCUT, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpBatCUT = v) }
-            }
-            EditableField("Charge UTPR", config.tmpBatCUTPR, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpBatCUTPR = v) }
-            }
-            EditableField("MOS OTP", config.tmpMosOT, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpMosOT = v) }
-            }
-            EditableField("MOS OTPR", config.tmpMosOTPR, "°C") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(tmpMosOTPR = v) }
-            }
-
-            SectionHeader("Battery")
-            EditableField("Cell Count", config.cellCount.toFloat(), "", isInteger = true) { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(cellCount = v.toLong()) }
-            }
-            EditableField("Battery Capacity", config.capBatCell, "Ah") { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(capBatCell = v) }
-            }
-
-            SectionHeader("Protection Delays")
-            EditableField("Charge OCP Delay", config.timBatCOCPDly.toFloat(), "s", isInteger = true) { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(timBatCOCPDly = v.toLong()) }
-            }
-            EditableField("Charge OCPR Time", config.timBatCOCPRDly.toFloat(), "s", isInteger = true) { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(timBatCOCPRDly = v.toLong()) }
-            }
-            EditableField("Discharge OCP Delay", config.timBatDcOCPDly.toFloat(), "s", isInteger = true) { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(timBatDcOCPDly = v.toLong()) }
-            }
-            EditableField("Discharge OCPR Time", config.timBatDcOCPRDly.toFloat(), "s", isInteger = true) { v ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(timBatDcOCPRDly = v.toLong()) }
-            }
-
-            SectionHeader("Switches")
-            EditableSwitch("Charge Enabled", config.batChargeEn == 1L) { checked ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(batChargeEn = if (checked) 1L else 0L) }
-            }
-            EditableSwitch("Discharge Enabled", config.batDischargeEn == 1L) { checked ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(batDischargeEn = if (checked) 1L else 0L) }
-            }
-            EditableSwitch("Balance Enabled", config.balanEn == 1L) { checked ->
-                viewModel.updateEditConfig { cfg -> cfg.copy(balanEn = if (checked) 1L else 0L) }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (state.writeSuccess == true) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        "Config written successfully",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-            }
-
-            if (state.error != null) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        state.error!!,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                }
-            }
-
-            Button(
-                onClick = { showConfirmDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isWriting && state.hasUnsavedChanges && state.isValid,
-            ) {
-                if (state.isWriting) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Write Configuration to BMS")
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-
-        if (showConfirmDialog) {
-            AlertDialog(
-                onDismissRequest = { showConfirmDialog = false },
-                title = { Text("Confirm Write") },
-                text = { Text("Are you sure you want to write these settings to the BMS? Incorrect values may damage your battery.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showConfirmDialog = false
-                            viewModel.writeConfig()
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                    ) {
-                        Text("Write")
+                    before.switchStatus.indices.forEach { index ->
+                        if (before.switchStatus[index] != after.switchStatus[index]) {
+                            append("\nSwitch bit $index: ${before.switchStatus[index]} → ${after.switchStatus[index]}")
+                        }
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showConfirmDialog = false }) {
-                        Text("Cancel")
-                    }
-                },
-            )
+                }
+            } else ""
+            AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Review changes") },
+                text = { Text(changes) },
+                confirmButton = { TextButton(onClick = { confirm = false; viewModel.writeConfig() }) { Text("Write and verify") } },
+                dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(top = 8.dp),
-    )
-    HorizontalDivider()
-}
-
-@Composable
-private fun EditableField(
-    label: String,
-    value: Float,
-    unit: String,
-    isInteger: Boolean = false,
-    onValueChange: (Float) -> Unit,
-) {
-    var textValue by remember(value) {
-        mutableStateOf(if (isInteger) value.toInt().toString() else "%.3f".format(value))
-    }
-    var isValid by remember { mutableStateOf(true) }
-
-    OutlinedTextField(
-        value = textValue,
-        onValueChange = { input ->
-            textValue = input
-            val parsed = input.toFloatOrNull()
-            if (parsed != null) {
-                isValid = true
-                onValueChange(parsed)
-            } else {
-                isValid = input.isBlank() || input == "-"
-            }
-        },
-        label = { Text(label) },
-        suffix = if (unit.isNotEmpty()) { { Text(unit) } } else null,
-        isError = !isValid,
-        modifier = Modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = if (isInteger) KeyboardType.Number else KeyboardType.Decimal,
-        ),
-        singleLine = true,
-    )
-}
-
-@Composable
-private fun EditableSwitch(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

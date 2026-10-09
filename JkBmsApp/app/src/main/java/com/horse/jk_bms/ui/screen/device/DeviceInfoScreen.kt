@@ -22,6 +22,7 @@ fun DeviceInfoScreen(
 ) {
     val deviceInfo by viewModel.deviceInfo.collectAsState()
     val info = deviceInfo
+    var revealCredentials by remember(info?.deviceSN) { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -72,8 +73,11 @@ fun DeviceInfoScreen(
 
             SectionHeader("Bluetooth")
             InfoRow("BLE Name", info.bluetoothName)
-            InfoRow("BLE Password", info.bluetoothPwd)
-            InfoRow("Setting Password", info.settingPassword)
+            InfoRow("BLE Password", if (revealCredentials) info.bluetoothPwd else "••••••")
+            InfoRow("Setting Password", if (revealCredentials) info.settingPassword else "••••••")
+            TextButton(onClick = { revealCredentials = !revealCredentials }) {
+                Text(if (revealCredentials) "Hide credentials" else "Reveal credentials")
+            }
 
             SectionHeader("User Data")
             InfoRow("User Data", info.userData)

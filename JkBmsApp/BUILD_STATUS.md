@@ -1,25 +1,18 @@
-# Gradle Wrapper Status
+# Android build status — 9 October 2026
 
-**Issue**: The gradle-wrapper.jar file was missing from the repository.
+The complete Gradle 8.13 wrapper is restored, including its JAR, Windows/POSIX launchers, executable Git mode and pinned distribution SHA-256. The wrapper JAR checksum matches Gradle's published 8.13 checksum: `81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f`.
 
-**Solution**: Run the following command to regenerate the gradle wrapper:
+Use a complete JDK 21 with `jlink` and Android SDK platform 36. Compilation targets Java 17. The obsolete daemon-download configuration is removed; `JAVA_HOME` selects the build JDK. Windows `local.properties` drive colons must be escaped, for example `sdk.dir=C\:/Users/you/AppData/Local/Android/Sdk`.
 
-```bash
-gradle wrapper --gradle-version 8.11.1
+From this directory run:
+
+```powershell
+.\gradlew.bat test lintDebug assembleDebug assembleRelease assembleDebugAndroidTest --console=plain
+.\gradlew.bat connectedDebugAndroidTest
 ```
 
-Alternatively, if gradle is not installed, download it from:
-https://gradle.org/releases/
+The first command checks both debug/release unit variants, lint and minified release assembly. The second requires a connected device/emulator. Windows/Linux CI is configured but has not been run remotely in this task.
 
-**KSP Migration**: ✅ Complete
-- ✅ Updated root build.gradle.kts with KSP plugin
-- ✅ Updated app/build.gradle.kts with KSP compiler
-- ✅ Replaced kapt with ksp for Hilt and Room
-- ✅ Updated kotlinOptions to compilerOptions
-- ✅ Removed kapt configuration block
-- ✅ Upgraded Hilt from 2.50 to 2.51
+ProGuard rules, an instrumentation runner, API-21-compatible Base64, exported Room v1/v2 schemas and an explicit database migration are present. Configuration writes remain disabled pending capture-backed BMS compatibility tests.
 
-**Next Steps**:
-1. Regenerate gradle wrapper
-2. Run `./gradlew clean assembleDebug` to verify build
-3. Run `./gradlew test` to verify tests
+See [implementation status](../docs/implementation-status-2026-10-09.md) for final validation results and outstanding hardware release evidence. Gradle assembles an unsigned minified release. The Windows [tester packaging script](../scripts/Build-TesterRelease.ps1) signs a separate distributable APK with a dedicated local key and creates a testing bundle; see the [testing guide](../docs/tester-release.md).

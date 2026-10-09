@@ -84,6 +84,8 @@ object RuntimeDataParser {
         val enableFlags = FieldDecoder.readBytes(data, 281, 12)
 
         return BmsRuntimeData(
+            cellWireResStat = cellWireResStat,
+            enableFlags = enableFlags,
             cellVoltages = cellVoltages,
             cellStatus = cellStatus,
             cellVolAve = cellVolAve,

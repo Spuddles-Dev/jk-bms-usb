@@ -22,9 +22,11 @@ fun ExportDialog(
     var selectedFormat by remember { mutableStateOf(ExportFormat.CSV) }
     var exportType by remember { mutableStateOf("runtime") }
     var hours by remember { mutableIntStateOf(24) }
+    LaunchedEffect(Unit) { viewModel.resetState() }
 
     LaunchedEffect(state.exportComplete, state.error) {
-        if (state.exportComplete || state.error != null) {
+        if (state.exportComplete) {
+            viewModel.resetState()
             onDismiss()
         }
     }
@@ -78,6 +80,7 @@ fun ExportDialog(
                 if (state.isExporting) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {

@@ -1,0 +1,5 @@
+-keepattributes Signature,InnerClasses,EnclosingMethod
+-keep class com.horse.jk_bms.model.** { *; }
+-keep class com.horse.jk_bms.data.backup.** { *; }
+-keep class com.horse.jk_bms.diagnostics.TraceEntry { *; }
+-keep class com.horse.jk_bms.viewmodel.DiagnosticCapture { *; }

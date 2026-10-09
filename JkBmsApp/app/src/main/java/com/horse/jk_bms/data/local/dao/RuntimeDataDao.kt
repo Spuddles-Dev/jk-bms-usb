@@ -7,6 +7,11 @@ import com.horse.jk_bms.data.local.entity.RuntimeDataEntity
 
 @Dao
 interface RuntimeDataDao {
+    @Query("SELECT MAX(id) FROM runtime_data")
+    suspend fun latestId(): Long?
+
+    @Query("SELECT * FROM runtime_data WHERE timestamp >= :from AND id > :afterId AND id <= :throughId AND (:session IS NULL OR sessionId = :session) ORDER BY id LIMIT 500")
+    suspend fun page(from: Long, throughId: Long, afterId: Long, session: String?): List<RuntimeDataEntity>
     @Insert
     suspend fun insert(entity: RuntimeDataEntity): Long
 

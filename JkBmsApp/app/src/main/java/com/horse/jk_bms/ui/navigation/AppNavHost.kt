@@ -11,6 +11,8 @@ import com.horse.jk_bms.ui.screen.settings.SettingsScreen
 import com.horse.jk_bms.ui.screen.device.DeviceInfoScreen
 import com.horse.jk_bms.ui.screen.faults.FaultsScreen
 import com.horse.jk_bms.ui.screen.logs.LogsScreen
+import com.horse.jk_bms.ui.screen.history.HistoryScreen
+import com.horse.jk_bms.ui.screen.history.DiagnosticsScreen
 
 @Composable
 fun AppNavHost(
@@ -22,6 +24,7 @@ fun AppNavHost(
     ) {
         composable(Screen.Connection.route) {
             ConnectionScreen(
+                onHistory = { navController.navigate("history") },
                 onConnected = {
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Connection.route) { inclusive = true }
@@ -32,6 +35,7 @@ fun AppNavHost(
 
         composable(Screen.Dashboard.route) {
             DashboardScreen(
+                onHistory = { navController.navigate("history") },
                 onCellsClick = { navController.navigate(Screen.Cells.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 onDeviceInfoClick = { navController.navigate(Screen.DeviceInfo.route) },
@@ -74,5 +78,7 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
+        composable("history") { HistoryScreen(onBack = { navController.popBackStack() }, onDiagnostics = { navController.navigate("diagnostics") }) }
+        composable("diagnostics") { DiagnosticsScreen(onBack = { navController.popBackStack() }) }
     }
 }

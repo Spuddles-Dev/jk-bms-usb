@@ -1,13 +1,17 @@
 package com.horse.jk_bms.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.horse.jk_bms.model.BmsRuntimeData
 
-@Entity(tableName = "runtime_data")
+@Entity(tableName = "runtime_data", indices = [Index("timestamp"), Index("sessionId", "timestamp")])
 data class RuntimeDataEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val timestamp: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "''") val sessionId: String = "",
+    @ColumnInfo(defaultValue = "''") val deviceId: String = "",
     val cellVoltages: String,
     val cellStatus: String,
     val cellVolAve: Float,
@@ -73,9 +77,13 @@ data class RuntimeDataEntity(
     val chargeStatusTime: Int,
     val chargeStatus2: Int,
     val switchStatus: String,
+    @ColumnInfo(defaultValue = "'[]'") val cellWireResStat: String = "[]",
+    @ColumnInfo(defaultValue = "''") val enableFlags: String = "",
 )
 
 fun BmsRuntimeData.toEntity(): RuntimeDataEntity = RuntimeDataEntity(
+    cellWireResStat = com.horse.jk_bms.data.local.Converters.fromBooleanArray(cellWireResStat),
+    enableFlags = com.horse.jk_bms.data.local.Converters.fromByteArray(enableFlags),
     cellVoltages = com.horse.jk_bms.data.local.Converters.fromFloatArray(cellVoltages),
     cellStatus = com.horse.jk_bms.data.local.Converters.fromBooleanArray(cellStatus),
     cellVolAve = cellVolAve,
