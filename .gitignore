@@ -12,6 +12,7 @@ apk_extracted/
 JkBmsApp/build/
 JkBmsApp/app/build/
 JkBmsApp/.gradle/
+JkBmsApp/.kotlin/
 JkBmsApp/local.properties
 JkBmsApp/*.iml
 JkBmsApp/app/*.iml
